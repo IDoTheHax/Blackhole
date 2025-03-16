@@ -74,7 +74,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
             itemDisplay.setNoGravity(true);
             ((ItemDisplayEntityInvoker) itemDisplay).invokeSetItemStack(new ItemStack(BlackHole.BLACK_HOLE_ITEM));
             ((ItemDisplayEntityInvoker) itemDisplay).invokeSetTransformationMode(ModelTransformationMode.FIXED);
-            ((DisplayEntityAccessor) itemDisplay).invokeSetBillboardMode(DisplayEntity.BillboardMode.FIXED); // Changed to FIXED
+            ((DisplayEntityAccessor) itemDisplay).invokeSetBillboardMode(DisplayEntity.BillboardMode.CENTER); // Changed to FIXED
 
             setScale(itemDisplay, new Vector3f(this.scale), positionOfHole);
 
