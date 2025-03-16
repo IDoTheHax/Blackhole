@@ -73,8 +73,8 @@ public class BlackHoleBlockEntity extends BlockEntity {
             itemDisplay.refreshPositionAndAngles(positionOfHole.x, positionOfHole.y, positionOfHole.z, 0, 0);
             itemDisplay.setNoGravity(true);
             ((ItemDisplayEntityInvoker) itemDisplay).invokeSetItemStack(new ItemStack(BlackHole.BLACK_HOLE_ITEM));
-            ((ItemDisplayEntityInvoker) itemDisplay).invokeSetTransformationMode(ModelTransformationMode.GROUND);
-            ((DisplayEntityAccessor) itemDisplay).invokeSetBillboardMode(DisplayEntity.BillboardMode.CENTER);
+            ((ItemDisplayEntityInvoker) itemDisplay).invokeSetTransformationMode(ModelTransformationMode.FIXED);
+            ((DisplayEntityAccessor) itemDisplay).invokeSetBillboardMode(DisplayEntity.BillboardMode.FIXED); // Changed to FIXED
 
             setScale(itemDisplay, new Vector3f(this.scale), positionOfHole);
 
@@ -98,44 +98,6 @@ public class BlackHoleBlockEntity extends BlockEntity {
 
             serverWorld.scheduleBlockTick(this.pos, this.getCachedState().getBlock(), 1);
         }
-    }
-
-    @Override
-    public void markRemoved() {
-        if (isMarkedForRemoval) {
-            BlackHole.LOGGER.debug("Already marked for removal at " + this.pos);
-            return;
-        }
-        isMarkedForRemoval = true;
-        BlackHole.LOGGER.info("Marking BlackHoleBlockEntity for removal at " + this.pos);
-
-        if (this.world instanceof ServerWorld serverWorld) {
-            try {
-                ServerChunkManager chunkManager = serverWorld.getChunkManager();
-                chunkManager.removeTicket(BlackHole.BLACK_HOLE_TICKET_TYPE, this.chunkPos, BlackHoleConfig.getChunkLoadRadius(), this.pos);
-                for (int dx = -BlackHoleConfig.getChunkLoadRadius(); dx <= BlackHoleConfig.getChunkLoadRadius(); dx++) {
-                    for (int dz = -BlackHoleConfig.getChunkLoadRadius(); dz <= BlackHoleConfig.getChunkLoadRadius(); dz++) {
-                        ChunkPos chunkPos = new ChunkPos(this.chunkPos.x + dx, this.chunkPos.z + dz);
-                        chunkManager.setChunkForced(chunkPos, false);
-                    }
-                }
-                this.chunksLoaded = false;
-                BlackHole.LOGGER.debug("Removed chunk tickets for " + this.chunkPos);
-            } catch (Exception e) {
-                BlackHole.LOGGER.error("Error removing chunk tickets: " + e.getMessage());
-            }
-        }
-
-        if (this.itemDisplayEntity != null && !this.itemDisplayEntity.isRemoved()) {
-            try {
-                BlackHole.LOGGER.info("Discarding display entity during markRemoved");
-                this.itemDisplayEntity.discard();
-            } catch (Exception e) {
-                BlackHole.LOGGER.error("Error discarding display entity: " + e.getMessage());
-            }
-        }
-        this.itemDisplayEntity = null;
-        super.markRemoved();
     }
 
     @Override
