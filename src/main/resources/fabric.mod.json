@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "blackhole",
+  "version": "${version}",
+  "name": "blackhole",
+  "description": "Serverside Blackhole mod that follows players",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/blackhole/icon.png",
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "net.idothehax.blackhole.Blackhole"
+    ]
+  },
+  "mixins": [
+    "blackhole.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
