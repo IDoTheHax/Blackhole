@@ -1,18 +1,25 @@
 package net.idothehax.blackhole;
 
 import com.mojang.brigadier.CommandDispatcher;
+import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.idothehax.blackhole.config.BlackHoleConfig;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemGroup;
+import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ChunkTicketType;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import org.slf4j.Logger;
@@ -52,9 +59,28 @@ public class BlackHole implements ModInitializer {
             BlockEntityType.Builder.create(BlackHoleBlockEntity::new, BLACK_HOLE_BLOCK).build()
     );
 
-
+    public static final ItemGroup ITEM_GROUP = new ItemGroup.Builder(null, -1)
+            .displayName(Text.translatable("blackhole.itemgroup").formatted(Formatting.AQUA))
+            .icon(()-> new ItemStack(BLACK_HOLE_ITEM))
+            .entries((displayContext, entries) -> Registries.ITEM.streamEntries()
+                    .filter(itemReference -> itemReference.getKey().map(key -> key.getValue().getNamespace().equals(MOD_ID)).orElse(false))
+                    .forEach(item -> entries.add(new ItemStack(item))))
+            .build();
 
     @Override
     public void onInitialize() {
+        LOGGER.info("Black-hole Mod is Sucking Up The Minecraft Source Code...");
+
+        // Load Config
+        BlackHoleConfig.loadConfig();
+
+        // Register Commando
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            BlackHoleCommands.register(dispatcher);
+        });
+
+        // Register The Blackhole Block Entity
+        PolymerBlockUtils.registerBlockEntity(BLACK_HOLE_BLOCK_ENTITY);
+
     }
 }

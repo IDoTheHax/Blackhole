@@ -1,6 +1,7 @@
 package net.idothehax.blackhole;
 
 import com.mojang.brigadier.context.CommandContext;
+import net.idothehax.blackhole.config.BlackHoleConfig;
 import net.idothehax.blackhole.mixin.DisplayEntityAccessor;
 import net.idothehax.blackhole.mixin.ItemDisplayEntityInvoker;
 import net.minecraft.block.*;
@@ -21,7 +22,6 @@ import net.minecraft.text.Text;
 import net.minecraft.util.math.*;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkStatus;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
@@ -33,30 +33,20 @@ public class BlackHoleBlockEntity extends BlockEntity {
     public float scale = 1.0f;
     public boolean isGrowing = true;
     @Nullable private DisplayEntity.ItemDisplayEntity itemDisplayEntity;
-    private static final double GRAVITY = 60;
-    private static final double PLAYER_MASS = 700;
-    private static final double BLOCK_MASS = 10.0;
-    private static final double ITEM_ENTITY_MASS = 0.1;
-    private static final double ANIMAL_MASS = 50.0;
-    private static final int CHUNK_LOAD_RADIUS = 2;
-    private static final int MAX_BLOCKS_PER_TICK = 500; // Limit blocks processed per tick
-    private static final float MAX_SCALE = 40.0f; // Cap the maximum scale
     private ChunkPos chunkPos;
     private boolean chunksLoaded = false;
     private int recreateAttempts = 0;
     private static final int MAX_RECREATE_ATTEMPTS = 3;
     private boolean isMarkedForRemoval = false;
-    private int tickCounter = 0; // Track ticks for progressive breaking
-    private double currentBreakRadius = 0.0; // Track current radius being processed
-    private static boolean shouldFollow = true; // Default to following players
-    private double followRange = 256.0; // Maximum range to detect players
-    private static final double MOVEMENT_SPEED = 1;
-    private int playerDetectionCooldown = 0;
-    private static final int PLAYER_DETECTION_INTERVAL = 60; // Check for closest player 3 seconds
+    private int tickCounter = 0;
+    private double currentBreakRadius = 0.0;
+    private boolean shouldFollow = true; // Instance-specific
+    private double followRange = BlackHoleConfig.getDefaultFollowRange();
 
     public BlackHoleBlockEntity(BlockPos pos, BlockState state) {
         super(BlackHole.BLACK_HOLE_BLOCK_ENTITY, pos, state);
         this.chunkPos = new ChunkPos(pos);
+        this.shouldFollow = true; // Default to following
     }
 
     public void startGrowth() {
@@ -91,7 +81,6 @@ public class BlackHoleBlockEntity extends BlockEntity {
             ((DisplayEntityAccessor) itemDisplay).invokeSetInterpolationDuration(20);
             ((DisplayEntityAccessor) itemDisplay).invokeSetStartInterpolation(0);
 
-            // Mark entity as persistent using NBT
             NbtCompound nbt = new NbtCompound();
             itemDisplay.writeNbt(nbt);
             nbt.putBoolean("PersistenceRequired", true);
@@ -122,18 +111,14 @@ public class BlackHoleBlockEntity extends BlockEntity {
 
         if (this.world instanceof ServerWorld serverWorld) {
             try {
-                // Unload all chunks
                 ServerChunkManager chunkManager = serverWorld.getChunkManager();
-                chunkManager.removeTicket(BlackHole.BLACK_HOLE_TICKET_TYPE, this.chunkPos, CHUNK_LOAD_RADIUS, this.pos);
-
-                // Unforce all chunks
-                for (int dx = -CHUNK_LOAD_RADIUS; dx <= CHUNK_LOAD_RADIUS; dx++) {
-                    for (int dz = -CHUNK_LOAD_RADIUS; dz <= CHUNK_LOAD_RADIUS; dz++) {
+                chunkManager.removeTicket(BlackHole.BLACK_HOLE_TICKET_TYPE, this.chunkPos, BlackHoleConfig.getChunkLoadRadius(), this.pos);
+                for (int dx = -BlackHoleConfig.getChunkLoadRadius(); dx <= BlackHoleConfig.getChunkLoadRadius(); dx++) {
+                    for (int dz = -BlackHoleConfig.getChunkLoadRadius(); dz <= BlackHoleConfig.getChunkLoadRadius(); dz++) {
                         ChunkPos chunkPos = new ChunkPos(this.chunkPos.x + dx, this.chunkPos.z + dz);
                         chunkManager.setChunkForced(chunkPos, false);
                     }
                 }
-
                 this.chunksLoaded = false;
                 BlackHole.LOGGER.debug("Removed chunk tickets for " + this.chunkPos);
             } catch (Exception e) {
@@ -158,13 +143,8 @@ public class BlackHoleBlockEntity extends BlockEntity {
         super.readNbt(nbt, registryLookup);
         this.scale = nbt.getFloat("scale");
         this.isGrowing = nbt.getBoolean("isGrowing");
-
-        // Load follow state (default to true if not present)
-        this.shouldFollow = !nbt.contains("shouldFollow") || nbt.getBoolean("shouldFollow");
-
-        if (nbt.contains("followRange")) {
-            this.followRange = nbt.getDouble("followRange");
-        }
+        this.shouldFollow = nbt.getBoolean("shouldFollow"); // Instance-specific
+        this.followRange = nbt.getDouble("followRange");
 
         if (nbt.containsUuid("entity") && this.world instanceof ServerWorld serverWorld) {
             UUID entityUuid = nbt.getUuid("entity");
@@ -173,7 +153,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
                 this.itemDisplayEntity = itemDisplay;
                 BlackHole.LOGGER.info("Loaded display entity from NBT with UUID: " + entityUuid);
             } else {
-                BlackHole.LOGGER.warn("Failed to load display entity from NBT. Entity not found or invalid type. UUID: " + entityUuid);
+                BlackHole.LOGGER.warn("Failed to load display entity from NBT. UUID: " + entityUuid);
                 this.itemDisplayEntity = null;
             }
         }
@@ -240,8 +220,8 @@ public class BlackHoleBlockEntity extends BlockEntity {
         Vec3d positionOfHole = new Vec3d(this.pos.getX() + 0.5, this.pos.getY() + 0.5, this.pos.getZ() + 0.5);
 
         if (this.itemDisplayEntity != null && !this.itemDisplayEntity.isRemoved()) {
-            if (this.scale < MAX_SCALE) {
-                this.scale += 0.04f;
+            if (this.scale < BlackHoleConfig.getMaxScale()) {
+                this.scale += BlackHoleConfig.getGrowthRate();
             }
             ((DisplayEntityAccessor) this.itemDisplayEntity).invokeSetInterpolationDuration(20);
             ((DisplayEntityAccessor) this.itemDisplayEntity).invokeSetStartInterpolation(0);
@@ -270,7 +250,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
     }
 
     public void toggleFollowing() {
-        this.shouldFollow = !this.shouldFollow; // Instance-specific toggle
+        this.shouldFollow = !this.shouldFollow;
         BlackHole.LOGGER.info("Black hole at " + this.pos + " following players: " + this.shouldFollow);
     }
 
@@ -341,7 +321,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
 
         tickCounter++;
 
-        if (this.shouldFollow && tickCounter % PLAYER_DETECTION_INTERVAL == 0) { // Use instance variable
+        if (this.shouldFollow && tickCounter % BlackHoleConfig.getPlayerDetectionInterval() == 0) {
             BlackHole.LOGGER.debug("Checking for player to follow at " + this.pos + ", shouldFollow: " + this.shouldFollow);
             PlayerEntity closestPlayer = null;
             double closestDistance = followRange * followRange;
@@ -365,7 +345,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
                 Vec3d currentPosition = Vec3d.ofCenter(this.pos);
                 Vec3d playerPosition = closestPlayer.getPos();
                 Vec3d movementDirection = playerPosition.subtract(currentPosition).normalize();
-                Vec3d newPosition = currentPosition.add(movementDirection.multiply(MOVEMENT_SPEED));
+                Vec3d newPosition = currentPosition.add(movementDirection.multiply(BlackHoleConfig.getMovementSpeed()));
                 BlockPos newBlockPos = BlockPos.ofFloored(newPosition);
 
                 BlackHole.LOGGER.debug("Calculated new position: " + newPosition + ", new block pos: " + newBlockPos);
@@ -383,7 +363,6 @@ public class BlackHoleBlockEntity extends BlockEntity {
                             moveBlackHole(serverWorld, newBlockPos);
                             return;
                         } else {
-                            // Break the block if possible
                             if (stateAtNewPos.getHardness(serverWorld, newBlockPos) >= 0) {
                                 serverWorld.setBlockState(newBlockPos, Blocks.AIR.getDefaultState(), Block.SKIP_DROPS | Block.FORCE_STATE);
                                 BlackHole.LOGGER.debug("Broke block at " + newBlockPos + " to allow movement");
@@ -424,15 +403,15 @@ public class BlackHoleBlockEntity extends BlockEntity {
             } else {
                 double mass;
                 if (entity instanceof PlayerEntity) {
-                    mass = PLAYER_MASS;
+                    mass = BlackHoleConfig.getPlayerMass();
                 } else if (entity instanceof FallingBlockEntity) {
-                    mass = BLOCK_MASS;
+                    mass = BlackHoleConfig.getBlockMass();
                 } else if (entity instanceof ItemEntity) {
-                    mass = ITEM_ENTITY_MASS;
+                    mass = BlackHoleConfig.getItemEntityMass();
                 } else if (!(entity instanceof LivingEntity)) {
                     continue;
                 } else {
-                    mass = ANIMAL_MASS;
+                    mass = BlackHoleConfig.getAnimalMass();
                 }
                 applyGravitationalPull(entity.getPos(), entity, blackHoleMass, mass, serverWorld);
             }
@@ -446,7 +425,6 @@ public class BlackHoleBlockEntity extends BlockEntity {
         double maxBreakRadius = this.scale;
         double gravitationalRadius = this.scale * 2;
 
-        // Increment current break radius progressively
         double radiusIncrement = 0.5;
         if (tickCounter % 5 == 0) {
             currentBreakRadius = Math.min(currentBreakRadius + radiusIncrement, maxBreakRadius);
@@ -463,7 +441,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
         Random random = serverWorld.getRandom();
         int blocksProcessed = 0;
 
-        for (int i = 0; i < MAX_BLOCKS_PER_TICK && blocksProcessed < MAX_BLOCKS_PER_TICK; i++) {
+        for (int i = 0; i < BlackHoleConfig.getMaxBlocksPerTick() && blocksProcessed < BlackHoleConfig.getMaxBlocksPerTick(); i++) {
             double angle = random.nextDouble() * Math.PI * 2;
             double theta = random.nextDouble() * Math.PI;
             double r = random.nextDouble() * gravitationalRadius;
@@ -485,12 +463,11 @@ public class BlackHoleBlockEntity extends BlockEntity {
             BlockState blockState = serverWorld.getBlockState(mutablePos);
 
             if (blockState.isAir()) {
-                continue; // Skip air blocks
+                continue;
             }
 
             if (distanceToCenter <= currentBreakRadius) {
                 if (blockState.getBlock() instanceof FluidBlock || blockState.getFluidState().isOf(Fluids.WATER) || blockState.getFluidState().isOf(Fluids.LAVA)) {
-                    // Remove water or lava blocks without drops
                     serverWorld.setBlockState(mutablePos, Blocks.AIR.getDefaultState(), Block.SKIP_DROPS | Block.FORCE_STATE);
                     serverWorld.spawnParticles(ParticleTypes.SPLASH, mutablePos.getX() + 0.5, mutablePos.getY() + 0.5, mutablePos.getZ() + 0.5,
                             5, 0.2, 0.2, 0.2, 0.01);
@@ -518,8 +495,8 @@ public class BlackHoleBlockEntity extends BlockEntity {
             }
         }
 
-        if (blocksProcessed >= MAX_BLOCKS_PER_TICK) {
-            BlackHole.LOGGER.debug("Reached block processing limit of " + MAX_BLOCKS_PER_TICK + " at " + this.pos);
+        if (blocksProcessed >= BlackHoleConfig.getMaxBlocksPerTick()) {
+            BlackHole.LOGGER.debug("Reached block processing limit of " + BlackHoleConfig.getMaxBlocksPerTick() + " at " + this.pos);
         }
     }
 
@@ -527,13 +504,9 @@ public class BlackHoleBlockEntity extends BlockEntity {
         if (shouldCreateFallingBlock(blockState) && serverWorld.random.nextFloat() < 0.3f) {
             createFallingBlock(serverWorld, pos, blockState);
         } else {
-            // Remove block without dropping items
             serverWorld.setBlockState(pos, Blocks.AIR.getDefaultState(), Block.SKIP_DROPS | Block.FORCE_STATE);
-            serverWorld.spawnParticles(
-                    ParticleTypes.SMOKE,
-                    pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
-                    2, 0.2, 0.2, 0.2, 0.01
-            );
+            serverWorld.spawnParticles(ParticleTypes.SMOKE, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+                    2, 0.2, 0.2, 0.2, 0.01);
         }
     }
 
@@ -542,7 +515,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
         return block != Blocks.BEDROCK &&
                 block != Blocks.AIR &&
                 !(block instanceof BlockEntityProvider) &&
-                !(block instanceof FluidBlock) && // Exclude fluids from falling blocks
+                !(block instanceof FluidBlock) &&
                 blockState.getHardness(world, pos) >= 0 &&
                 blockState.getHardness(world, pos) < 50;
     }
@@ -554,7 +527,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
                 Vec3d direction = this.pos.toCenterPos().subtract(pos.toCenterPos()).normalize();
                 fallingBlock.setVelocity(direction.multiply(0.1));
                 fallingBlock.velocityModified = true;
-                serverWorld.removeBlock(pos, false); // No drops
+                serverWorld.removeBlock(pos, false);
             }
         }
     }
@@ -564,9 +537,9 @@ public class BlackHoleBlockEntity extends BlockEntity {
         ChunkPos currentChunkPos = new ChunkPos(this.pos);
 
         if (!currentChunkPos.equals(this.chunkPos)) {
-            chunkManager.removeTicket(BlackHole.BLACK_HOLE_TICKET_TYPE, this.chunkPos, CHUNK_LOAD_RADIUS, this.pos);
-            for (int dx = -CHUNK_LOAD_RADIUS; dx <= CHUNK_LOAD_RADIUS; dx++) {
-                for (int dz = -CHUNK_LOAD_RADIUS; dz <= CHUNK_LOAD_RADIUS; dz++) {
+            chunkManager.removeTicket(BlackHole.BLACK_HOLE_TICKET_TYPE, this.chunkPos, BlackHoleConfig.getChunkLoadRadius(), this.pos);
+            for (int dx = -BlackHoleConfig.getChunkLoadRadius(); dx <= BlackHoleConfig.getChunkLoadRadius(); dx++) {
+                for (int dz = -BlackHoleConfig.getChunkLoadRadius(); dz <= BlackHoleConfig.getChunkLoadRadius(); dz++) {
                     ChunkPos oldChunkPos = new ChunkPos(this.chunkPos.x + dx, this.chunkPos.z + dz);
                     chunkManager.setChunkForced(oldChunkPos, false);
                 }
@@ -575,9 +548,9 @@ public class BlackHoleBlockEntity extends BlockEntity {
             BlackHole.LOGGER.debug("Removed chunk tickets for old position: " + this.chunkPos);
         }
 
-        chunkManager.addTicket(BlackHole.BLACK_HOLE_TICKET_TYPE, this.chunkPos, CHUNK_LOAD_RADIUS, this.pos);
-        for (int dx = -CHUNK_LOAD_RADIUS; dx <= CHUNK_LOAD_RADIUS; dx++) {
-            for (int dz = -CHUNK_LOAD_RADIUS; dz <= CHUNK_LOAD_RADIUS; dz++) {
+        chunkManager.addTicket(BlackHole.BLACK_HOLE_TICKET_TYPE, this.chunkPos, BlackHoleConfig.getChunkLoadRadius(), this.pos);
+        for (int dx = -BlackHoleConfig.getChunkLoadRadius(); dx <= BlackHoleConfig.getChunkLoadRadius(); dx++) {
+            for (int dz = -BlackHoleConfig.getChunkLoadRadius(); dz <= BlackHoleConfig.getChunkLoadRadius(); dz++) {
                 ChunkPos loadChunkPos = new ChunkPos(this.chunkPos.x + dx, this.chunkPos.z + dz);
                 try {
                     serverWorld.getChunk(loadChunkPos.x, loadChunkPos.z, ChunkStatus.FULL);
@@ -629,7 +602,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
 
         if (distanceToBlackHole > 0.1) {
             Vec3d directionFromEntityToHole = blackHolePos.subtract(entityPos).normalize();
-            double forceMagnitude = GRAVITY * entityMass * blackHoleMass / (distanceToBlackHole * distanceToBlackHole);
+            double forceMagnitude = BlackHoleConfig.getGravity() * entityMass * blackHoleMass / (distanceToBlackHole * distanceToBlackHole);
             forceMagnitude = Math.min(forceMagnitude, 5.0);
             Vec3d velocityToAdd = directionFromEntityToHole.multiply(forceMagnitude / 1000);
             entity.addVelocity(velocityToAdd.x, velocityToAdd.y, velocityToAdd.z);
@@ -647,23 +620,6 @@ public class BlackHoleBlockEntity extends BlockEntity {
         if (this.world instanceof ServerWorld serverWorld && this.itemDisplayEntity != null) {
             Vec3d positionOfHole = new Vec3d(this.pos.getX() + 0.5, this.pos.getY() + 0.5, this.pos.getZ() + 0.5);
             setScale(this.itemDisplayEntity, new Vector3f(this.scale), positionOfHole);
-        }
-    }
-
-    public static int toggleFollowingCommand(CommandContext<ServerCommandSource> context) {
-        ServerCommandSource source = context.getSource();
-        ServerWorld world = source.getWorld();
-        Vec3d pos = source.getPosition();
-        BlockPos blockPos = BlockPos.ofFloored(pos);
-
-        BlockEntity entity = world.getBlockEntity(blockPos);
-        if (entity instanceof BlackHoleBlockEntity blackHole) {
-            blackHole.toggleFollowing();
-            source.sendFeedback(() -> Text.literal("Black hole following toggled to " + blackHole.isFollowing()), true);
-            return 1;
-        } else {
-            source.sendError(Text.literal("No black hole found at " + blockPos));
-            return 0;
         }
     }
 }
