@@ -11,7 +11,7 @@
   "environment": "server",
   "entrypoints": {
     "main": [
-      "net.idothehax.blackhole.Blackhole"
+      "net.idothehax.blackhole.BlackHole"
     ]
   },
   "mixins": [
