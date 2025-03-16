@@ -3,7 +3,6 @@ package net.idothehax.blackhole;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
-import com.mojang.brigadier.arguments.StringArgumentType;
 import net.idothehax.blackhole.config.BlackHoleConfig;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.server.command.CommandManager;
@@ -11,87 +10,306 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.ChunkStatus;
+import net.minecraft.world.chunk.WorldChunk;
 
-import java.util.function.Supplier;
+import java.util.ArrayList;
+import java.util.List;
 
 public class BlackHoleCommands {
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(CommandManager.literal("blackhole")
                 .requires(source -> source.hasPermissionLevel(2)) // Only ops can use
-                .then(CommandManager.literal("get")
-                        .then(CommandManager.argument("property", StringArgumentType.string())
+                // Max Scale commands
+                .then(CommandManager.literal("getmaxscale")
+                        .executes(context -> {
+                            ServerCommandSource source = context.getSource();
+                            source.sendFeedback(() -> Text.literal("maxScale: " + BlackHoleConfig.getMaxScale()), false);
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .then(CommandManager.literal("setmaxscale")
+                        .then(CommandManager.argument("value", DoubleArgumentType.doubleArg())
                                 .executes(context -> {
-                                    String property = StringArgumentType.getString(context, "property");
+                                    double value = DoubleArgumentType.getDouble(context, "value");
                                     ServerCommandSource source = context.getSource();
-                                    String response = getProperty(property);
-                                    source.sendFeedback(() -> Text.literal(response), false);
+                                    BlackHoleConfig.setMaxScale((float) value);
+                                    source.sendFeedback(() -> Text.literal("maxScale set to " + value), true);
                                     return Command.SINGLE_SUCCESS;
                                 })))
-                .then(CommandManager.literal("set")
-                        .then(CommandManager.argument("property", StringArgumentType.string())
-                                .then(CommandManager.argument("value", DoubleArgumentType.doubleArg())
-                                        .executes(context -> {
-                                            String property = StringArgumentType.getString(context, "property");
-                                            double value = DoubleArgumentType.getDouble(context, "value");
-                                            ServerCommandSource source = context.getSource();
-                                            String response = setProperty(property, value);
-                                            source.sendFeedback(() -> Text.literal(response), true);
-                                            return Command.SINGLE_SUCCESS;
-                                        }))))
+                // Gravity commands
+                .then(CommandManager.literal("getgravity")
+                        .executes(context -> {
+                            ServerCommandSource source = context.getSource();
+                            source.sendFeedback(() -> Text.literal("gravity: " + BlackHoleConfig.getGravity()), false);
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .then(CommandManager.literal("setgravity")
+                        .then(CommandManager.argument("value", DoubleArgumentType.doubleArg())
+                                .executes(context -> {
+                                    double value = DoubleArgumentType.getDouble(context, "value");
+                                    ServerCommandSource source = context.getSource();
+                                    BlackHoleConfig.setGravity(value);
+                                    source.sendFeedback(() -> Text.literal("gravity set to " + value), true);
+                                    return Command.SINGLE_SUCCESS;
+                                })))
+                // Player Mass commands
+                .then(CommandManager.literal("getplayermass")
+                        .executes(context -> {
+                            ServerCommandSource source = context.getSource();
+                            source.sendFeedback(() -> Text.literal("playerMass: " + BlackHoleConfig.getPlayerMass()), false);
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .then(CommandManager.literal("setplayermass")
+                        .then(CommandManager.argument("value", DoubleArgumentType.doubleArg())
+                                .executes(context -> {
+                                    double value = DoubleArgumentType.getDouble(context, "value");
+                                    ServerCommandSource source = context.getSource();
+                                    BlackHoleConfig.setPlayerMass(value);
+                                    source.sendFeedback(() -> Text.literal("playerMass set to " + value), true);
+                                    return Command.SINGLE_SUCCESS;
+                                })))
+                // Block Mass commands
+                .then(CommandManager.literal("getblockmass")
+                        .executes(context -> {
+                            ServerCommandSource source = context.getSource();
+                            source.sendFeedback(() -> Text.literal("blockMass: " + BlackHoleConfig.getBlockMass()), false);
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .then(CommandManager.literal("setblockmass")
+                        .then(CommandManager.argument("value", DoubleArgumentType.doubleArg())
+                                .executes(context -> {
+                                    double value = DoubleArgumentType.getDouble(context, "value");
+                                    ServerCommandSource source = context.getSource();
+                                    BlackHoleConfig.setBlockMass(value);
+                                    source.sendFeedback(() -> Text.literal("blockMass set to " + value), true);
+                                    return Command.SINGLE_SUCCESS;
+                                })))
+                // Item Entity Mass commands
+                .then(CommandManager.literal("getitementitymass")
+                        .executes(context -> {
+                            ServerCommandSource source = context.getSource();
+                            source.sendFeedback(() -> Text.literal("itemEntityMass: " + BlackHoleConfig.getItemEntityMass()), false);
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .then(CommandManager.literal("setitementitymass")
+                        .then(CommandManager.argument("value", DoubleArgumentType.doubleArg())
+                                .executes(context -> {
+                                    double value = DoubleArgumentType.getDouble(context, "value");
+                                    ServerCommandSource source = context.getSource();
+                                    BlackHoleConfig.setItemEntityMass(value);
+                                    source.sendFeedback(() -> Text.literal("itemEntityMass set to " + value), true);
+                                    return Command.SINGLE_SUCCESS;
+                                })))
+                // Animal Mass commands
+                .then(CommandManager.literal("getanimalmass")
+                        .executes(context -> {
+                            ServerCommandSource source = context.getSource();
+                            source.sendFeedback(() -> Text.literal("animalMass: " + BlackHoleConfig.getAnimalMass()), false);
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .then(CommandManager.literal("setanimalmass")
+                        .then(CommandManager.argument("value", DoubleArgumentType.doubleArg())
+                                .executes(context -> {
+                                    double value = DoubleArgumentType.getDouble(context, "value");
+                                    ServerCommandSource source = context.getSource();
+                                    BlackHoleConfig.setAnimalMass(value);
+                                    source.sendFeedback(() -> Text.literal("animalMass set to " + value), true);
+                                    return Command.SINGLE_SUCCESS;
+                                })))
+                // Chunk Load Radius commands
+                .then(CommandManager.literal("getchunkloadradius")
+                        .executes(context -> {
+                            ServerCommandSource source = context.getSource();
+                            source.sendFeedback(() -> Text.literal("chunkLoadRadius: " + BlackHoleConfig.getChunkLoadRadius()), false);
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .then(CommandManager.literal("setchunkloadradius")
+                        .then(CommandManager.argument("value", DoubleArgumentType.doubleArg())
+                                .executes(context -> {
+                                    double value = DoubleArgumentType.getDouble(context, "value");
+                                    ServerCommandSource source = context.getSource();
+                                    BlackHoleConfig.setChunkLoadRadius((int) value);
+                                    source.sendFeedback(() -> Text.literal("chunkLoadRadius set to " + (int) value), true);
+                                    return Command.SINGLE_SUCCESS;
+                                })))
+                // Max Blocks Per Tick commands
+                .then(CommandManager.literal("getmaxblockspertick")
+                        .executes(context -> {
+                            ServerCommandSource source = context.getSource();
+                            source.sendFeedback(() -> Text.literal("maxBlocksPerTick: " + BlackHoleConfig.getMaxBlocksPerTick()), false);
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .then(CommandManager.literal("setmaxblockspertick")
+                        .then(CommandManager.argument("value", DoubleArgumentType.doubleArg())
+                                .executes(context -> {
+                                    double value = DoubleArgumentType.getDouble(context, "value");
+                                    ServerCommandSource source = context.getSource();
+                                    BlackHoleConfig.setMaxBlocksPerTick((int) value);
+                                    source.sendFeedback(() -> Text.literal("maxBlocksPerTick set to " + (int) value), true);
+                                    return Command.SINGLE_SUCCESS;
+                                })))
+                // Movement Speed commands
+                .then(CommandManager.literal("getmovementspeed")
+                        .executes(context -> {
+                            ServerCommandSource source = context.getSource();
+                            source.sendFeedback(() -> Text.literal("movementSpeed: " + BlackHoleConfig.getMovementSpeed()), false);
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .then(CommandManager.literal("setmovementspeed")
+                        .then(CommandManager.argument("value", DoubleArgumentType.doubleArg())
+                                .executes(context -> {
+                                    double value = DoubleArgumentType.getDouble(context, "value");
+                                    ServerCommandSource source = context.getSource();
+                                    BlackHoleConfig.setMovementSpeed(value);
+                                    source.sendFeedback(() -> Text.literal("movementSpeed set to " + value), true);
+                                    return Command.SINGLE_SUCCESS;
+                                })))
+                // Default Follow Range commands
+                .then(CommandManager.literal("getdefaultfollowrange")
+                        .executes(context -> {
+                            ServerCommandSource source = context.getSource();
+                            source.sendFeedback(() -> Text.literal("defaultFollowRange: " + BlackHoleConfig.getDefaultFollowRange()), false);
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .then(CommandManager.literal("setdefaultfollowrange")
+                        .then(CommandManager.argument("value", DoubleArgumentType.doubleArg())
+                                .executes(context -> {
+                                    double value = DoubleArgumentType.getDouble(context, "value");
+                                    ServerCommandSource source = context.getSource();
+                                    BlackHoleConfig.setDefaultFollowRange(value);
+                                    source.sendFeedback(() -> Text.literal("defaultFollowRange set to " + value), true);
+                                    return Command.SINGLE_SUCCESS;
+                                })))
+                // Player Detection Interval commands
+                .then(CommandManager.literal("getplayerdetectioninterval")
+                        .executes(context -> {
+                            ServerCommandSource source = context.getSource();
+                            source.sendFeedback(() -> Text.literal("playerDetectionInterval: " + BlackHoleConfig.getPlayerDetectionInterval()), false);
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .then(CommandManager.literal("setplayerdetectioninterval")
+                        .then(CommandManager.argument("value", DoubleArgumentType.doubleArg())
+                                .executes(context -> {
+                                    double value = DoubleArgumentType.getDouble(context, "value");
+                                    ServerCommandSource source = context.getSource();
+                                    BlackHoleConfig.setPlayerDetectionInterval((int) value);
+                                    source.sendFeedback(() -> Text.literal("playerDetectionInterval set to " + (int) value), true);
+                                    return Command.SINGLE_SUCCESS;
+                                })))
+                // Growth Rate commands
+                .then(CommandManager.literal("getgrowthrate")
+                        .executes(context -> {
+                            ServerCommandSource source = context.getSource();
+                            source.sendFeedback(() -> Text.literal("growthRate: " + BlackHoleConfig.getGrowthRate()), false);
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .then(CommandManager.literal("setgrowthrate")
+                        .then(CommandManager.argument("value", DoubleArgumentType.doubleArg())
+                                .executes(context -> {
+                                    double value = DoubleArgumentType.getDouble(context, "value");
+                                    ServerCommandSource source = context.getSource();
+                                    BlackHoleConfig.setGrowthRate((float) value);
+                                    source.sendFeedback(() -> Text.literal("growthRate set to " + value), true);
+                                    return Command.SINGLE_SUCCESS;
+                                })))
+                // Existing black hole manipulation commands
                 .then(CommandManager.literal("togglefollow")
                         .executes(context -> {
                             ServerCommandSource source = context.getSource();
                             ServerWorld world = source.getWorld();
                             Vec3d pos = source.getPosition();
-                            BlockPos blockPos = BlockPos.ofFloored(pos);
-
-                            BlockEntity entity = world.getBlockEntity(blockPos);
-                            if (entity instanceof BlackHoleBlockEntity blackHole) {
+                            BlackHoleBlockEntity blackHole = findNearestBlackHole(world, pos);
+                            if (blackHole != null) {
                                 blackHole.toggleFollowing();
-                                source.sendFeedback(() -> Text.literal("Black hole following toggled to " + blackHole.isFollowing()), true);
+                                source.sendFeedback(() -> Text.literal("Black hole following toggled to " + blackHole.isFollowing() + " at " + blackHole.getPosition()), true);
                                 return Command.SINGLE_SUCCESS;
                             } else {
-                                source.sendError(Text.literal("No black hole found at " + blockPos));
+                                source.sendError(Text.literal("No black hole found in the loaded world"));
                                 return 0;
                             }
-                        })));
+                        }))
+                .then(CommandManager.literal("togglegrowth")
+                        .executes(context -> {
+                            ServerCommandSource source = context.getSource();
+                            ServerWorld world = source.getWorld();
+                            Vec3d pos = source.getPosition();
+                            BlackHoleBlockEntity blackHole = findNearestBlackHole(world, pos);
+                            if (blackHole != null) {
+                                blackHole.toggleBlackHoleGrowth();
+                                source.sendFeedback(() -> Text.literal("Black hole growth toggled to " + blackHole.isBlackHoleGrowing() + " at " + blackHole.getPosition()), true);
+                                return Command.SINGLE_SUCCESS;
+                            } else {
+                                source.sendError(Text.literal("No black hole found in the loaded world"));
+                                return 0;
+                            }
+                        }))
+                .then(CommandManager.literal("setfollowrange")
+                        .then(CommandManager.argument("range", DoubleArgumentType.doubleArg(0.0))
+                                .executes(context -> {
+                                    ServerCommandSource source = context.getSource();
+                                    ServerWorld world = source.getWorld();
+                                    Vec3d pos = source.getPosition();
+                                    double range = DoubleArgumentType.getDouble(context, "range");
+                                    BlackHoleBlockEntity blackHole = findNearestBlackHole(world, pos);
+                                    if (blackHole != null) {
+                                        blackHole.setFollowRange(range);
+                                        blackHole.markDirty();
+                                        source.sendFeedback(() -> Text.literal("Black hole follow range set to " + range + " at " + blackHole.getPosition()), true);
+                                        return Command.SINGLE_SUCCESS;
+                                    } else {
+                                        source.sendError(Text.literal("No black hole found in the loaded world"));
+                                        return 0;
+                                    }
+                                }))));
     }
 
-    private static String getProperty(String property) {
-        switch (property.toLowerCase()) {
-            case "maxscale": return "maxScale: " + BlackHoleConfig.getMaxScale();
-            case "gravity": return "gravity: " + BlackHoleConfig.getGravity();
-            case "playermass": return "playerMass: " + BlackHoleConfig.getPlayerMass();
-            case "blockmass": return "blockMass: " + BlackHoleConfig.getBlockMass();
-            case "itementitymass": return "itemEntityMass: " + BlackHoleConfig.getItemEntityMass();
-            case "animalmass": return "animalMass: " + BlackHoleConfig.getAnimalMass();
-            case "chunkloadradius": return "chunkLoadRadius: " + BlackHoleConfig.getChunkLoadRadius();
-            case "maxblockspertick": return "maxBlocksPerTick: " + BlackHoleConfig.getMaxBlocksPerTick();
-            case "movementspeed": return "movementSpeed: " + BlackHoleConfig.getMovementSpeed();
-            case "defaultfollowrange": return "defaultFollowRange: " + BlackHoleConfig.getDefaultFollowRange();
-            case "playerdetectioninterval": return "playerDetectionInterval: " + BlackHoleConfig.getPlayerDetectionInterval();
-            case "growthrate": return "growthRate: " + BlackHoleConfig.getGrowthRate();
-            default: return "Invalid property!";
-        }
-    }
+    private static BlackHoleBlockEntity findNearestBlackHole(ServerWorld world, Vec3d position) {
+        List<BlackHoleBlockEntity> blackHoles = new ArrayList<>();
 
-    private static String setProperty(String property, double value) {
-        switch (property.toLowerCase()) {
-            case "maxscale": BlackHoleConfig.setMaxScale((float) value); return "maxScale set to " + value;
-            case "gravity": BlackHoleConfig.setGravity(value); return "gravity set to " + value;
-            case "playermass": BlackHoleConfig.setPlayerMass(value); return "playerMass set to " + value;
-            case "blockmass": BlackHoleConfig.setBlockMass(value); return "blockMass set to " + value;
-            case "itementitymass": BlackHoleConfig.setItemEntityMass(value); return "itemEntityMass set to " + value;
-            case "animalmass": BlackHoleConfig.setAnimalMass(value); return "animalMass set to " + value;
-            case "chunkloadradius": BlackHoleConfig.setChunkLoadRadius((int) value); return "chunkLoadRadius set to " + (int) value;
-            case "maxblockspertick": BlackHoleConfig.setMaxBlocksPerTick((int) value); return "maxBlocksPerTick set to " + (int) value;
-            case "movementspeed": BlackHoleConfig.setMovementSpeed(value); return "movementSpeed set to " + value;
-            case "defaultfollowrange": BlackHoleConfig.setDefaultFollowRange(value); return "defaultFollowRange set to " + value;
-            case "playerdetectioninterval": BlackHoleConfig.setPlayerDetectionInterval((int) value); return "playerDetectionInterval set to " + (int) value;
-            case "growthrate": BlackHoleConfig.setGrowthRate((float) value); return "growthRate set to " + value;
-            default: return "Invalid property!";
+        // Get the chunk manager
+        var chunkManager = world.getChunkManager();
+
+        // Get the player's chunk position as a starting point
+        ChunkPos playerChunkPos = new ChunkPos(new BlockPos((int)position.x, (int)position.y, (int)position.z));
+
+        // Search radius in chunks (adjust as needed, this is a reasonable default)
+        int searchRadius = 32; // 32 chunks radius = 512 blocks
+
+        // Iterate through nearby chunks
+        for (int dx = -searchRadius; dx <= searchRadius; dx++) {
+            for (int dz = -searchRadius; dz <= searchRadius; dz++) {
+                ChunkPos chunkPos = new ChunkPos(playerChunkPos.x + dx, playerChunkPos.z + dz);
+
+                // Check if chunk is loaded
+                if (chunkManager.isChunkLoaded(chunkPos.x, chunkPos.z)) {
+                    Chunk chunk = world.getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL, false);
+                    if (chunk instanceof WorldChunk worldChunk) {  // Cast to WorldChunk
+                        // Get all block entities in this chunk
+                        for (BlockEntity blockEntity : worldChunk.getBlockEntities().values()) {
+                            if (blockEntity instanceof BlackHoleBlockEntity blackHole) {
+                                blackHoles.add(blackHole);
+                            }
+                        }
+                    }
+                }
+            }
         }
+
+        BlackHoleBlockEntity nearest = null;
+        double minDistanceSq = Double.MAX_VALUE;
+
+        for (BlackHoleBlockEntity blackHole : blackHoles) {
+            double distanceSq = position.squaredDistanceTo(Vec3d.ofCenter(blackHole.getPosition()));
+            if (distanceSq < minDistanceSq) {
+                minDistanceSq = distanceSq;
+                nearest = blackHole;
+            }
+        }
+
+        return nearest;
     }
 }

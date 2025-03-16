@@ -4,7 +4,7 @@
   "version": "${version}",
   "name": "blackhole",
   "description": "Serverside Blackhole mod that follows players",
-  "authors": [],
+  "authors": ["IDoTheHax"],
   "contact": {},
   "license": "All-Rights-Reserved",
   "icon": "assets/blackhole/icon.png",

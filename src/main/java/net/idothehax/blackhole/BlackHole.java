@@ -2,6 +2,7 @@ package net.idothehax.blackhole;
 
 import com.mojang.brigadier.CommandDispatcher;
 import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.idothehax.blackhole.config.BlackHoleConfig;
@@ -82,5 +83,7 @@ public class BlackHole implements ModInitializer {
         // Register The Blackhole Block Entity
         PolymerBlockUtils.registerBlockEntity(BLACK_HOLE_BLOCK_ENTITY);
 
+        PolymerResourcePackUtils.addModAssets(MOD_ID);
+        PolymerResourcePackUtils.markAsRequired();
     }
 }

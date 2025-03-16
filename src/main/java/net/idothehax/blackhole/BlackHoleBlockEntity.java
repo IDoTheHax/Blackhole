@@ -41,7 +41,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
     private int tickCounter = 0;
     private double currentBreakRadius = 0.0;
     private boolean shouldFollow = true; // Instance-specific
-    private double followRange = BlackHoleConfig.getDefaultFollowRange();
+    public double followRange = BlackHoleConfig.getDefaultFollowRange();
 
     public BlackHoleBlockEntity(BlockPos pos, BlockState state) {
         super(BlackHole.BLACK_HOLE_BLOCK_ENTITY, pos, state);
@@ -258,9 +258,9 @@ public class BlackHoleBlockEntity extends BlockEntity {
         return this.shouldFollow;
     }
 
-    public void setFollowing(boolean shouldFollow) {
-        this.shouldFollow = shouldFollow;
-        BlackHole.LOGGER.info("Black hole at " + this.pos + " following players set to: " + this.shouldFollow);
+    public void setFollowRange(double range) {
+        this.followRange = range;
+        BlackHole.LOGGER.info("Black hole at " + this.pos + " follow range set to: " + range);
     }
 
     public BlockPos getPosition() {
