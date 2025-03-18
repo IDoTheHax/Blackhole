@@ -106,8 +106,8 @@ The mod creates a configuration file at `config/black_hole.json` with the follow
 - The mod implements a scheduled tick system to control black hole growth and movement
 
 ## Known Issues
-- Black Hole Rendering Issue: The black hole often appears as a cross-like structure instead of a cohesive circular shape due to intersecting planes (YZ, XZ, XY). Display entities may also despawn unexpectedly, causing repeated recreation. A fix is being investigated.
-- Render Distance Issue: The black hole disappears when moving too far away, even within typical render distances, due to entity rendering limitations. A solution is being explored.
+- Black Hole Rendering Issue: The black hole often looks like the circle is moving when the player changes their view, this is due to the display mode of the item display being set to billboard, advanced maths that i dont understand is required to fix this.
+- Render Distance Issue: The black hole disappears when moving too far away, even within typical render distances, due to entity rendering limitations.
 
 Any fixes found can be submitted through a Pull request on the Github: https://github.com/IDoTheHax/Blackhole
 Don't Hesitate to add your fixes!!
