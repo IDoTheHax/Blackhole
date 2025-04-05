@@ -1,6 +1,6 @@
 {
 	"parent": "minecraft:item/generated",
 	"textures": {
-		"layer01": "blackhole:block/black_hole"
+		"layer0": "blackhole:block/black_hole"
 	}
 }
