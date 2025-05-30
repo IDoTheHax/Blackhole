@@ -4,7 +4,7 @@ A Minecraft mod that adds destructive, dynamic black holes to your world.
 
 - **Github:** https://github.com/IDoTheHax/Blackhole
 - **Modrinth:** https://modrinth.com/mod/blackhole
-- **Discord:** https://discord.gg/FastpV5Qag
+- **Discord:** https://discord.com/faPd8MQ3Ke
 
 ## Overview
 
