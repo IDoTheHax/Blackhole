@@ -232,6 +232,74 @@ public class BlackHoleCommands {
                             source.sendFeedback(() -> Text.literal("Particles are currently " + (enabled ? "enabled" : "disabled")), false);
                             return Command.SINGLE_SUCCESS;
                         }))
+                // Black Hole Manipulation commands
+                .then(CommandManager.literal("togglefollow")
+                        .executes(context -> {
+                            ServerCommandSource source = context.getSource();
+                            try {
+                                Vec3d pos = source.getPosition();
+                                ServerWorld world = source.getWorld();
+                                BlackHoleBlockEntity blackHole = findNearestBlackHole(world, pos);
+
+                                if (blackHole == null) {
+                                    source.sendFeedback(() -> Text.literal("No black hole found nearby"), false);
+                                    return Command.SINGLE_SUCCESS;
+                                }
+
+                                blackHole.toggleFollowing();
+                                boolean following = blackHole.isFollowing();
+                                source.sendFeedback(() -> Text.literal("Black hole at " + blackHole.getPosition() + " following: " + (following ? "enabled" : "disabled")), true);
+                                return Command.SINGLE_SUCCESS;
+                            } catch (Exception e) {
+                                source.sendFeedback(() -> Text.literal("Error: " + e.getMessage()), false);
+                                return 0;
+                            }
+                        }))
+                .then(CommandManager.literal("togglegrowth")
+                        .executes(context -> {
+                            ServerCommandSource source = context.getSource();
+                            try {
+                                Vec3d pos = source.getPosition();
+                                ServerWorld world = source.getWorld();
+                                BlackHoleBlockEntity blackHole = findNearestBlackHole(world, pos);
+
+                                if (blackHole == null) {
+                                    source.sendFeedback(() -> Text.literal("No black hole found nearby"), false);
+                                    return Command.SINGLE_SUCCESS;
+                                }
+
+                                blackHole.toggleBlackHoleGrowth();
+                                boolean growing = blackHole.isBlackHoleGrowing();
+                                source.sendFeedback(() -> Text.literal("Black hole at " + blackHole.getPosition() + " growth: " + (growing ? "enabled" : "disabled")), true);
+                                return Command.SINGLE_SUCCESS;
+                            } catch (Exception e) {
+                                source.sendFeedback(() -> Text.literal("Error: " + e.getMessage()), false);
+                                return 0;
+                            }
+                        }))
+                .then(CommandManager.literal("setfollowrange")
+                        .then(CommandManager.argument("range", DoubleArgumentType.doubleArg(0))
+                                .executes(context -> {
+                                    double range = DoubleArgumentType.getDouble(context, "range");
+                                    ServerCommandSource source = context.getSource();
+                                    try {
+                                        Vec3d pos = source.getPosition();
+                                        ServerWorld world = source.getWorld();
+                                        BlackHoleBlockEntity blackHole = findNearestBlackHole(world, pos);
+
+                                        if (blackHole == null) {
+                                            source.sendFeedback(() -> Text.literal("No black hole found nearby"), false);
+                                            return Command.SINGLE_SUCCESS;
+                                        }
+
+                                        blackHole.setFollowRange(range);
+                                        source.sendFeedback(() -> Text.literal("Black hole at " + blackHole.getPosition() + " follow range set to " + range), true);
+                                        return Command.SINGLE_SUCCESS;
+                                    } catch (Exception e) {
+                                        source.sendFeedback(() -> Text.literal("Error: " + e.getMessage()), false);
+                                        return 0;
+                                    }
+                                })))
                 );
     }
 
@@ -281,4 +349,3 @@ public class BlackHoleCommands {
         return nearest;
     }
 }
-

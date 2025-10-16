@@ -66,7 +66,7 @@ public class BlackHole implements ModInitializer {
     public static final RegistryKey<ItemGroup> ITEM_GROUP_KEY = RegistryKey.of(Registries.ITEM_GROUP.getKey(), Identifier.of(MOD_ID, "blackhole_group"));
 
     public static final ItemGroup ITEM_GROUP = ItemGroup.create(ItemGroup.Row.TOP, 0)
-            .displayName(Text.translatable("itemGroup.blackhole.blackhole_group").formatted(Formatting.AQUA))
+            .displayName(Text.translatable("itemGroup.blackhole").formatted(Formatting.AQUA))
             .icon(() -> new ItemStack(BLACK_HOLE_ITEM))
             .entries((displayContext, entries) -> {
                 entries.add(BLACK_HOLE_ITEM);

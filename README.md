@@ -5,6 +5,8 @@ A Minecraft mod that adds destructive, dynamic black holes to your world.
 - **Github:** https://github.com/IDoTheHax/Blackhole
 - **Modrinth:** https://modrinth.com/mod/blackhole
 - **Discord:** https://discord.com/faPd8MQ3Ke
+- **Youtube:**
+<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/LeALlIde120" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 ## Overview
 
@@ -15,12 +17,13 @@ The Black Hole mod introduces a new block that creates a simulated black hole in
 - **Realistic Physics**: Black holes exert gravitational force on nearby entities and blocks based on configurable mass values
 - **Growing Black Holes**: Black holes can expand over time, increasing their area of effect
 - **Player Tracking**: Black holes can follow players within a configurable range
-- **Visual Effects**: Features particle effects for an immersive experience
+- **Visual Effects**: Features customizable particle effects for an immersive experience
 - **Fully Configurable**: All aspects of black hole behavior can be adjusted via commands or configuration file
+- **Creative Mode Integration**: Black hole item available in both custom creative tab and vanilla Redstone Blocks tab
 
-Texture Pack
-This mod uses Polymer for custom rendering and requires a texture pack for the black hole visuals. Use the `/polymer generatepack` command in-game to create a default texture pack, then Drag the generated pack (named resource_pack in the polymer folder) into your resources folder or use a serverside resource pack. See the [Polymer Documentation](https://polymer.pb4.eu/polymer/resource-packs/#building-resource-pack) for more details.
+## Texture Pack
 
+This mod uses Polymer for custom rendering and requires a texture pack for the black hole visuals. Use the `/polymer generatepack` command in-game to create a default texture pack, then drag the generated pack (named resource_pack in the polymer folder) into your resources folder or use a serverside resource pack. See the [Polymer Documentation](https://polymer.pb4.eu/polymer/resource-packs/#building-resource-pack) for more details.
 
 ## Commands
 
@@ -42,6 +45,7 @@ All commands require operator permission level 2 or higher and begin with `/blac
 | `getdefaultfollowrange` / `setdefaultfollowrange <value>` | Get/set default range for black holes to detect players |
 | `getplayerdetectioninterval` / `setplayerdetectioninterval <value>` | Get/set ticks between player detection checks |
 | `getgrowthrate` / `setgrowthrate <value>` | Get/set growth rate for black holes |
+| `getparticles` / `toggleparticles` | Get/toggle particle effects on/off globally |
 
 ### Black Hole Manipulation Commands
 
@@ -68,7 +72,8 @@ The mod creates a configuration file at `config/black_hole.json` with the follow
   "movementSpeed": 1.0,
   "defaultFollowRange": 256.0,
   "playerDetectionInterval": 60,
-  "growthRate": 0.04
+  "growthRate": 0.04,
+  "particlesEnabled": true
 }
 ```
 
@@ -88,6 +93,7 @@ The mod creates a configuration file at `config/black_hole.json` with the follow
 | `defaultFollowRange` | Default range for black holes to detect players | 256.0 |
 | `playerDetectionInterval` | Ticks between player detection checks | 60 |
 | `growthRate` | How quickly black holes grow in size | 0.04 |
+| `particlesEnabled` | Whether particle effects are enabled globally | true |
 
 ## Behavior Notes
 
@@ -97,13 +103,15 @@ The mod creates a configuration file at `config/black_hole.json` with the follow
 - Black holes can be configured to not follow players or to stop growing
 - Black holes will create falling block entities from some destroyed blocks for visual effect
 - Each black hole maintains its own settings for following and growth
+- Particle effects can be toggled off for better performance on servers or lower-end systems
+- The black hole item can be found in the custom "BlackHole" creative tab or in the vanilla Redstone Blocks tab
 
 ## Technical Information
 
-- The mod uses Polymer for block rendering
-- Black holes are implemented as block entities with associated display entities,
-- Force-loaded chunks ensure black holes continue to function even when players are not nearby
-- The mod implements a scheduled tick system to control black hole growth and movement
+- Built with Fabric and Polymer for vanilla client compatibility
+- Uses chunk force-loading to ensure black holes function even when players are distant
+- Implements custom block entity with tick-based behavior
+- Supports server-side resource packs for texture distribution
 
 ## Known Issues
 - Black Hole Rendering Issue: The black hole often looks like the circle is moving when the player changes their view, this is due to the display mode of the item display being set to billboard, advanced maths that i dont understand is required to fix this.
