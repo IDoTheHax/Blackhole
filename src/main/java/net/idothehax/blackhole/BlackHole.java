@@ -5,6 +5,7 @@ import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.idothehax.blackhole.config.BlackHoleConfig;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
@@ -13,9 +14,11 @@ import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
+import net.minecraft.item.ItemGroups;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ChunkTicketType;
@@ -60,12 +63,14 @@ public class BlackHole implements ModInitializer {
             BlockEntityType.Builder.create(BlackHoleBlockEntity::new, BLACK_HOLE_BLOCK).build()
     );
 
-    public static final ItemGroup ITEM_GROUP = new ItemGroup.Builder(null, -1)
-            .displayName(Text.translatable("blackhole.itemgroup").formatted(Formatting.AQUA))
-            .icon(()-> new ItemStack(BLACK_HOLE_ITEM))
-            .entries((displayContext, entries) -> Registries.ITEM.streamEntries()
-                    .filter(itemReference -> itemReference.getKey().map(key -> key.getValue().getNamespace().equals(MOD_ID)).orElse(false))
-                    .forEach(item -> entries.add(new ItemStack(item))))
+    public static final RegistryKey<ItemGroup> ITEM_GROUP_KEY = RegistryKey.of(Registries.ITEM_GROUP.getKey(), Identifier.of(MOD_ID, "blackhole_group"));
+
+    public static final ItemGroup ITEM_GROUP = ItemGroup.create(ItemGroup.Row.TOP, 0)
+            .displayName(Text.translatable("itemGroup.blackhole.blackhole_group").formatted(Formatting.AQUA))
+            .icon(() -> new ItemStack(BLACK_HOLE_ITEM))
+            .entries((displayContext, entries) -> {
+                entries.add(BLACK_HOLE_ITEM);
+            })
             .build();
 
     @Override
@@ -75,13 +80,21 @@ public class BlackHole implements ModInitializer {
         // Load Config
         BlackHoleConfig.loadConfig();
 
-        // Register Commando
+        // Register Commands
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             BlackHoleCommands.register(dispatcher);
         });
 
         // Register The Blackhole Block Entity
         PolymerBlockUtils.registerBlockEntity(BLACK_HOLE_BLOCK_ENTITY);
+
+        // Register our custom item group
+        Registry.register(Registries.ITEM_GROUP, ITEM_GROUP_KEY, ITEM_GROUP);
+
+        // Add to vanilla Redstone Blocks creative tab
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(content -> {
+            content.add(BLACK_HOLE_ITEM);
+        });
 
         PolymerResourcePackUtils.addModAssets(MOD_ID);
         PolymerResourcePackUtils.markAsRequired();

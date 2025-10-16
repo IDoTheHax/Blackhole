@@ -166,7 +166,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
                 for (int i = 0; i < 10; i++) {
                     double progress = i / 10.0;
                     Vec3d particlePos = fromPos.add(direction.multiply(progress));
-                    serverWorld.spawnParticles(ParticleTypes.LARGE_SMOKE, particlePos.x, particlePos.y, particlePos.z, 1, 0.1, 0.1, 0.1, 0.01);
+                    spawnParticlesIfEnabled(serverWorld, ParticleTypes.LARGE_SMOKE, particlePos.x, particlePos.y, particlePos.z, 1, 0.1, 0.1, 0.1, 0.01);
                 }
 
                 BlackHole.LOGGER.info("Black hole moved from " + this.pos + " to " + newBlockPos);
@@ -431,7 +431,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
             if (distanceToCenter <= currentBreakRadius) {
                 if (blockState.getBlock() instanceof FluidBlock || blockState.getFluidState().isOf(Fluids.WATER) || blockState.getFluidState().isOf(Fluids.LAVA)) {
                     serverWorld.setBlockState(mutablePos, Blocks.AIR.getDefaultState(), Block.SKIP_DROPS | Block.FORCE_STATE);
-                    serverWorld.spawnParticles(ParticleTypes.SPLASH, mutablePos.getX() + 0.5, mutablePos.getY() + 0.5, mutablePos.getZ() + 0.5,
+                    spawnParticlesIfEnabled(serverWorld, ParticleTypes.SPLASH, mutablePos.getX() + 0.5, mutablePos.getY() + 0.5, mutablePos.getZ() + 0.5,
                             5, 0.2, 0.2, 0.2, 0.01);
                     blocksProcessed++;
                 } else if (blockState.getHardness(serverWorld, mutablePos) >= 0) {
@@ -443,7 +443,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
                     double probability = 0.05 * (gravitationalRadius - distanceToCenter) / gravitationalRadius;
                     if (random.nextDouble() < probability) {
                         serverWorld.removeBlock(mutablePos, false);
-                        serverWorld.spawnParticles(ParticleTypes.SPLASH, mutablePos.getX() + 0.5, mutablePos.getY() + 0.5, mutablePos.getZ() + 0.5,
+                        spawnParticlesIfEnabled(serverWorld, ParticleTypes.SPLASH, mutablePos.getX() + 0.5, mutablePos.getY() + 0.5, mutablePos.getZ() + 0.5,
                                 3, 0.2, 0.2, 0.2, 0.01);
                         blocksProcessed++;
                     }
@@ -467,7 +467,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
             createFallingBlock(serverWorld, pos, blockState);
         } else {
             serverWorld.setBlockState(pos, Blocks.AIR.getDefaultState(), Block.SKIP_DROPS | Block.FORCE_STATE);
-            serverWorld.spawnParticles(ParticleTypes.SMOKE, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+            spawnParticlesIfEnabled(serverWorld, ParticleTypes.SMOKE, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
                     2, 0.2, 0.2, 0.2, 0.01);
         }
     }
@@ -532,7 +532,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
         double particleRadius = this.scale * 1.2;
         int particleCount = Math.min(200, (int)(this.scale * 30));
 
-        if (particleRadius <= 0) {
+        if (particleRadius <= 0 || !BlackHoleConfig.areParticlesEnabled()) {
             return;
         }
 
@@ -549,11 +549,11 @@ public class BlackHoleBlockEntity extends BlockEntity {
             double zPos = center.getZ() + spiralRadius * Math.sin(angle);
 
             if (random.nextFloat() < 0.7) {
-                serverWorld.spawnParticles(ParticleTypes.FLAME, xPos, yPos, zPos, 1, 0, 0, 0, 0);
+                spawnParticlesIfEnabled(serverWorld, ParticleTypes.FLAME, xPos, yPos, zPos, 1, 0, 0, 0, 0);
             } else if (random.nextFloat() < 0.5) {
-                serverWorld.spawnParticles(ParticleTypes.SMOKE, xPos, yPos, zPos, 1, 0, 0, 0, 0);
+                spawnParticlesIfEnabled(serverWorld, ParticleTypes.SMOKE, xPos, yPos, zPos, 1, 0, 0, 0, 0);
             } else {
-                serverWorld.spawnParticles(ParticleTypes.SOUL_FIRE_FLAME, xPos, yPos, zPos, 1, 0, 0, 0, 0);
+                spawnParticlesIfEnabled(serverWorld, ParticleTypes.SOUL_FIRE_FLAME, xPos, yPos, zPos, 1, 0, 0, 0, 0);
             }
         }
     }
@@ -584,4 +584,11 @@ public class BlackHoleBlockEntity extends BlockEntity {
             setScale(this.itemDisplayEntity, new Vector3f(this.scale), positionOfHole);
         }
     }
+
+    private void spawnParticlesIfEnabled(ServerWorld serverWorld, net.minecraft.particle.ParticleEffect particleType, double x, double y, double z, int count, double deltaX, double deltaY, double deltaZ, double speed) {
+        if (BlackHoleConfig.areParticlesEnabled()) {
+            serverWorld.spawnParticles(particleType, x, y, z, count, deltaX, deltaY, deltaZ, speed);
+        }
+    }
 }
+

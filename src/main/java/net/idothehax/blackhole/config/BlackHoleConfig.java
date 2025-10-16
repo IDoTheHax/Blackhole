@@ -24,6 +24,7 @@ public class BlackHoleConfig {
     private static double DEFAULT_FOLLOW_RANGE = 256.0;
     private static int PLAYER_DETECTION_INTERVAL = 60;
     private static float GROWTH_RATE = 0.04f;
+    private static boolean PARTICLES_ENABLED = true;
 
     private static final String CONFIG_FILE = "config/black_hole.json";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -47,6 +48,7 @@ public class BlackHoleConfig {
                 if (json.has("playerDetectionInterval"))
                     PLAYER_DETECTION_INTERVAL = json.get("playerDetectionInterval").getAsInt();
                 if (json.has("growthRate")) GROWTH_RATE = json.get("growthRate").getAsFloat();
+                if (json.has("particlesEnabled")) PARTICLES_ENABLED = json.get("particlesEnabled").getAsBoolean();
 
                 BlackHole.LOGGER.info("Loaded black hole config from " + CONFIG_FILE);
             } catch (IOException e) {
@@ -82,6 +84,7 @@ public class BlackHoleConfig {
         json.addProperty("defaultFollowRange", DEFAULT_FOLLOW_RANGE);
         json.addProperty("playerDetectionInterval", PLAYER_DETECTION_INTERVAL);
         json.addProperty("growthRate", GROWTH_RATE);
+        json.addProperty("particlesEnabled", PARTICLES_ENABLED);
 
         try (Writer writer = Files.newBufferedWriter(Paths.get(CONFIG_FILE))) {
             GSON.toJson(json, writer);
@@ -138,6 +141,10 @@ public class BlackHoleConfig {
 
     public static float getGrowthRate() {
         return GROWTH_RATE;
+    }
+
+    public static boolean areParticlesEnabled() {
+        return PARTICLES_ENABLED;
     }
 
     // Setters for all config values
@@ -198,6 +205,16 @@ public class BlackHoleConfig {
 
     public static void setGrowthRate(float growthRate) {
         GROWTH_RATE = growthRate;
+        saveConfig();
+    }
+
+    public static void setParticlesEnabled(boolean enabled) {
+        PARTICLES_ENABLED = enabled;
+        saveConfig();
+    }
+
+    public static void toggleParticles() {
+        PARTICLES_ENABLED = !PARTICLES_ENABLED;
         saveConfig();
     }
 }
