@@ -1,24 +1,20 @@
 package net.idothehax.blackhole;
 
-import com.mojang.brigadier.context.CommandContext;
 import net.idothehax.blackhole.config.BlackHoleConfig;
 import net.idothehax.blackhole.mixin.DisplayEntityAccessor;
-import net.idothehax.blackhole.mixin.ItemDisplayEntityInvoker;
 import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.client.render.model.json.ModelTransformationMode;
 import net.minecraft.entity.*;
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.fluid.Fluids;
+import net.minecraft.item.ItemDisplayContext;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ServerChunkManager;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
 import net.minecraft.util.math.*;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
@@ -37,10 +33,10 @@ public class BlackHoleBlockEntity extends BlockEntity {
     private boolean chunksLoaded = false;
     private int recreateAttempts = 0;
     private static final int MAX_RECREATE_ATTEMPTS = 3;
-    private boolean isMarkedForRemoval = false;
+    private final boolean isMarkedForRemoval = false;
     private int tickCounter = 0;
     private double currentBreakRadius = 0.0;
-    private boolean shouldFollow = true; // Instance-specific
+    private boolean shouldFollow; // Instance-specific
     public double followRange = BlackHoleConfig.getDefaultFollowRange();
 
     public BlackHoleBlockEntity(BlockPos pos, BlockState state) {
@@ -72,9 +68,9 @@ public class BlackHoleBlockEntity extends BlockEntity {
             Vec3d positionOfHole = new Vec3d(this.pos.getX() + 0.5, this.pos.getY() + 0.5, this.pos.getZ() + 0.5);
             itemDisplay.refreshPositionAndAngles(positionOfHole.x, positionOfHole.y, positionOfHole.z, 0, 0);
             itemDisplay.setNoGravity(true);
-            ((ItemDisplayEntityInvoker) itemDisplay).invokeSetItemStack(new ItemStack(BlackHole.BLACK_HOLE_ITEM));
-            ((ItemDisplayEntityInvoker) itemDisplay).invokeSetTransformationMode(ModelTransformationMode.FIXED);
-            ((DisplayEntityAccessor) itemDisplay).invokeSetBillboardMode(DisplayEntity.BillboardMode.CENTER); // Changed to FIXED
+            itemDisplay.setItemStack(new ItemStack(BlackHole.BLACK_HOLE_ITEM));
+            itemDisplay.setItemDisplayContext(ItemDisplayContext.FIXED);
+            ((DisplayEntityAccessor) itemDisplay).invokeSetBillboardMode(DisplayEntity.BillboardMode.CENTER);
 
             setScale(itemDisplay, new Vector3f(this.scale), positionOfHole);
 
@@ -103,19 +99,27 @@ public class BlackHoleBlockEntity extends BlockEntity {
     @Override
     protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
         super.readNbt(nbt, registryLookup);
-        this.scale = nbt.getFloat("scale");
-        this.isGrowing = nbt.getBoolean("isGrowing");
-        this.shouldFollow = nbt.getBoolean("shouldFollow"); // Instance-specific
-        this.followRange = nbt.getDouble("followRange");
+        this.scale = nbt.contains("scale") ? nbt.getFloat("scale").orElse(1.0f) : 1.0f;
+        this.isGrowing = nbt.contains("isGrowing") ? nbt.getBoolean("isGrowing").orElse(true) : true;
+        this.shouldFollow = nbt.contains("shouldFollow") ? nbt.getBoolean("shouldFollow").orElse(true) : true;
+        this.followRange = nbt.contains("followRange") ? nbt.getDouble("followRange").orElse(BlackHoleConfig.getDefaultFollowRange()) : BlackHoleConfig.getDefaultFollowRange();
 
-        if (nbt.containsUuid("entity") && this.world instanceof ServerWorld serverWorld) {
-            UUID entityUuid = nbt.getUuid("entity");
-            Entity entity = serverWorld.getEntity(entityUuid);
-            if (entity instanceof DisplayEntity.ItemDisplayEntity itemDisplay) {
-                this.itemDisplayEntity = itemDisplay;
-                BlackHole.LOGGER.info("Loaded display entity from NBT with UUID: " + entityUuid);
-            } else {
-                BlackHole.LOGGER.warn("Failed to load display entity from NBT. UUID: " + entityUuid);
+        if (nbt.contains("entityUuid") && this.world instanceof ServerWorld serverWorld) {
+            String uuidString = nbt.getString("entityUuid").orElse("");
+            try {
+                if (!uuidString.isEmpty()) {
+                    UUID entityUuid = UUID.fromString(uuidString);
+                    Entity entity = serverWorld.getEntity(entityUuid);
+                    if (entity instanceof DisplayEntity.ItemDisplayEntity itemDisplay) {
+                        this.itemDisplayEntity = itemDisplay;
+                        BlackHole.LOGGER.info("Loaded display entity from NBT with UUID: " + entityUuid);
+                    } else {
+                        BlackHole.LOGGER.warn("Failed to load display entity from NBT. UUID: " + entityUuid);
+                        this.itemDisplayEntity = null;
+                    }
+                }
+            } catch (IllegalArgumentException e) {
+                BlackHole.LOGGER.warn("Invalid UUID in NBT: " + uuidString);
                 this.itemDisplayEntity = null;
             }
         }
@@ -130,7 +134,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
         nbt.putDouble("followRange", this.followRange);
 
         if (this.itemDisplayEntity != null && !this.itemDisplayEntity.isRemoved()) {
-            nbt.putUuid("entity", this.itemDisplayEntity.getUuid());
+            nbt.putString("entityUuid", this.itemDisplayEntity.getUuid().toString());
             BlackHole.LOGGER.debug("Saved display entity UUID: " + this.itemDisplayEntity.getUuid());
         }
     }
@@ -360,7 +364,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
                 if (entity instanceof ItemEntity) {
                     entity.discard();
                 } else {
-                    entity.damage(this.world.getDamageSources().outOfWorld(), Float.MAX_VALUE);
+                    entity.damage(serverWorld, this.world.getDamageSources().outOfWorld(), Float.MAX_VALUE);
                 }
             } else {
                 double mass;
@@ -499,7 +503,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
         ChunkPos currentChunkPos = new ChunkPos(this.pos);
 
         if (!currentChunkPos.equals(this.chunkPos)) {
-            chunkManager.removeTicket(BlackHole.BLACK_HOLE_TICKET_TYPE, this.chunkPos, BlackHoleConfig.getChunkLoadRadius(), this.pos);
+            chunkManager.removeTicket(BlackHole.BLACK_HOLE_TICKET_TYPE, this.chunkPos, BlackHoleConfig.getChunkLoadRadius());
             for (int dx = -BlackHoleConfig.getChunkLoadRadius(); dx <= BlackHoleConfig.getChunkLoadRadius(); dx++) {
                 for (int dz = -BlackHoleConfig.getChunkLoadRadius(); dz <= BlackHoleConfig.getChunkLoadRadius(); dz++) {
                     ChunkPos oldChunkPos = new ChunkPos(this.chunkPos.x + dx, this.chunkPos.z + dz);
@@ -510,7 +514,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
             BlackHole.LOGGER.debug("Removed chunk tickets for old position: " + this.chunkPos);
         }
 
-        chunkManager.addTicket(BlackHole.BLACK_HOLE_TICKET_TYPE, this.chunkPos, BlackHoleConfig.getChunkLoadRadius(), this.pos);
+        chunkManager.addTicket(BlackHole.BLACK_HOLE_TICKET_TYPE, this.chunkPos, BlackHoleConfig.getChunkLoadRadius());
         for (int dx = -BlackHoleConfig.getChunkLoadRadius(); dx <= BlackHoleConfig.getChunkLoadRadius(); dx++) {
             for (int dz = -BlackHoleConfig.getChunkLoadRadius(); dz <= BlackHoleConfig.getChunkLoadRadius(); dz++) {
                 ChunkPos loadChunkPos = new ChunkPos(this.chunkPos.x + dx, this.chunkPos.z + dz);

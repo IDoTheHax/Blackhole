@@ -1,6 +1,7 @@
 plugins {
-    id 'fabric-loom' version '1.10-SNAPSHOT'
+    id 'fabric-loom' version '1.11-SNAPSHOT'
     id 'maven-publish'
+    id "com.modrinth.minotaur" version "2.+"
 }
 
 version = project.mod_version
@@ -22,6 +23,7 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-object-builder-api-v1:${project.fabric_version}"
     modImplementation include("eu.pb4:polymer-common:${project.polymer_version}")
     modImplementation include("eu.pb4:polymer-core:${project.polymer_version}")
     modImplementation include("eu.pb4:polymer-resource-pack:${project.polymer_version}")
@@ -85,5 +87,19 @@ publishing {
         // Notice: This block does NOT have the same function as the block in the top level.
         // The repositories here will be used for publishing your artifact, not for
         // retrieving dependencies.
+    }
+}
+
+modrinth {
+    token = System.getenv("MODRINTH_TOKEN")
+    projectId = "q5teMtU9"
+    versionNumber = "${version}"
+    versionType = "release" // or "beta" or "alpha"
+    uploadFile = remapJar
+    gameVersions = ["1.21", "1.21.1", "1.21.5"]
+    loaders = ["fabric"]
+    dependencies {
+        required.project "fabric-api"
+        embedded.project "polymer"
     }
 }

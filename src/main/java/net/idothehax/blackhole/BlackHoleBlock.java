@@ -27,19 +27,21 @@ import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.List;
 
 public class BlackHoleBlock extends BlockWithEntity implements PolymerTexturedBlock {
-    private static final Vector3f MAX_SCALE = new Vector3f(2.0f);
-    private static final int GROWTH_DURATION = 20; // Schedule the growth every second (20 ticks)
     private static final MapCodec<BlackHoleBlock> CODEC = createCodec(BlackHoleBlock::new);
 
-    private final BlockState polymerBlockState;
-    private final PolymerBlockModel model;
+    private BlockState polymerBlockState;
+    private PolymerBlockModel model;
 
     public BlackHoleBlock(Settings settings) {
         super(settings);
+    }
+
+    public void initPolymerResources() {
         this.model = PolymerBlockModel.of(Identifier.of(BlackHole.MOD_ID, "block/black_hole"));
         this.polymerBlockState = PolymerBlockResourceUtils.requestBlock(BlockModelType.FULL_BLOCK, this.model);
     }
@@ -71,19 +73,8 @@ public class BlackHoleBlock extends BlockWithEntity implements PolymerTexturedBl
     }
 
     @Override
-    public void appendTooltip(ItemStack stack, Item.TooltipContext context, List<Text> tooltip, TooltipType type) {
-        super.appendTooltip(stack, context, tooltip, type);
-        tooltip.add(Text.literal("Black hole").formatted(Formatting.RED, Formatting.BOLD));
-    }
-
-    @Override
     public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
         return new BlackHoleBlockEntity(pos, state);
-    }
-
-    @Override
-    public BlockState getPolymerBlockState(BlockState state) {
-        return this.polymerBlockState;
     }
 
     @Nullable
@@ -93,7 +84,12 @@ public class BlackHoleBlock extends BlockWithEntity implements PolymerTexturedBl
     }
 
     @Override
-    public BlockState getPolymerBreakEventBlockState(BlockState state, ServerPlayerEntity player) {
-        return Blocks.BLACK_WOOL.getDefaultState();
+    public BlockState getPolymerBreakEventBlockState(BlockState state, PacketContext context) {
+        return PolymerTexturedBlock.super.getPolymerBreakEventBlockState(state, context);
+    }
+
+    @Override
+    public BlockState getPolymerBlockState(BlockState state, PacketContext context) {
+        return this.polymerBlockState;
     }
 }
