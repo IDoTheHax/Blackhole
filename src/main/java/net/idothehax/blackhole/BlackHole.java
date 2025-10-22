@@ -33,13 +33,12 @@ public class BlackHole implements ModInitializer {
     public static final String MOD_ID = "blackhole";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    // Register ChunkTicketType for 1.21.5+ (Record-based system)
-    public static final ChunkTicketType BLACK_HOLE_TICKET_TYPE =
-            Registry.register(
-                    Registries.TICKET_TYPE,
-                    Identifier.of(MOD_ID, "black_hole"),
-                    new ChunkTicketType(300L, true, ChunkTicketType.Use.LOADING_AND_SIMULATION)
-            );
+    // Register ChunkTicketType for 1.21.9+ using flags (FOR_LOADING | FOR_SIMULATION)
+    public static final ChunkTicketType BLACK_HOLE_TICKET_TYPE = Registry.register(
+            Registries.TICKET_TYPE,
+            Identifier.of(MOD_ID, "black_hole"),
+            new ChunkTicketType(300L, ChunkTicketType.FOR_LOADING | ChunkTicketType.FOR_SIMULATION)
+    );
 
     public static BlackHoleBlock BLACK_HOLE_BLOCK;
     public static BlockItem BLACK_HOLE_ITEM;

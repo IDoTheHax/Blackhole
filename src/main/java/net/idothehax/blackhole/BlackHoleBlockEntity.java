@@ -59,7 +59,8 @@ public class BlackHoleBlockEntity extends BlockEntity {
         this.isGrowing = true;
         if (this.world instanceof ServerWorld serverWorld) {
             if (this.itemDisplayEntity != null && !this.itemDisplayEntity.isRemoved()) {
-                BlackHole.LOGGER.info("Discarding existing display entity at " + this.itemDisplayEntity.getPos());
+                // Use getX(), getY(), getZ() for entity position logging
+                BlackHole.LOGGER.info("Discarding existing display entity at " + this.itemDisplayEntity.getX() + ", " + this.itemDisplayEntity.getY() + ", " + this.itemDisplayEntity.getZ());
                 this.itemDisplayEntity.discard();
             }
             this.itemDisplayEntity = null;
@@ -227,9 +228,10 @@ public class BlackHoleBlockEntity extends BlockEntity {
         recreateAttempts = 0;
 
         Vec3d expectedPos = new Vec3d(this.pos.getX() + 0.5, this.pos.getY() + 0.5, this.pos.getZ() + 0.5);
-        if (!this.itemDisplayEntity.getPos().equals(expectedPos)) {
+        Vec3d displayEntityPos = new Vec3d(this.itemDisplayEntity.getX(), this.itemDisplayEntity.getY(), this.itemDisplayEntity.getZ());
+        if (!displayEntityPos.equals(expectedPos)) {
             BlackHole.LOGGER.warn("Display entity position mismatch at " + this.pos +
-                    ". Expected: " + expectedPos + ", Actual: " + this.itemDisplayEntity.getPos());
+                    ". Expected: " + expectedPos + ", Actual: " + displayEntityPos);
             this.itemDisplayEntity.setPosition(expectedPos);
         }
 
@@ -250,7 +252,8 @@ public class BlackHoleBlockEntity extends BlockEntity {
                     continue;
                 }
 
-                double distance = player.squaredDistanceTo(Vec3d.ofCenter(this.pos));
+                Vec3d playerPos = new Vec3d(player.getX(), player.getY(), player.getZ());
+                double distance = playerPos.squaredDistanceTo(Vec3d.ofCenter(this.pos));
                 BlackHole.LOGGER.debug("Player " + player.getName().getString() + " at distance " + Math.sqrt(distance));
                 if (distance < closestDistance) {
                     closestDistance = distance;
@@ -259,9 +262,9 @@ public class BlackHoleBlockEntity extends BlockEntity {
             }
 
             if (closestPlayer != null) {
-                BlackHole.LOGGER.debug("Closest player: " + closestPlayer.getName().getString() + " at " + closestPlayer.getPos());
+                Vec3d playerPosition = new Vec3d(closestPlayer.getX(), closestPlayer.getY(), closestPlayer.getZ());
+                BlackHole.LOGGER.debug("Closest player: " + closestPlayer.getName().getString() + " at " + playerPosition);
                 Vec3d currentPosition = Vec3d.ofCenter(this.pos);
-                Vec3d playerPosition = closestPlayer.getPos();
                 Vec3d movementDirection = playerPosition.subtract(currentPosition).normalize();
                 Vec3d newPosition = currentPosition.add(movementDirection.multiply(BlackHoleConfig.getMovementSpeed()));
                 BlockPos newBlockPos = BlockPos.ofFloored(newPosition);
@@ -306,11 +309,12 @@ public class BlackHoleBlockEntity extends BlockEntity {
 
         List<Entity> affectedEntities = serverWorld.getEntitiesByClass(Entity.class, areaOfEffect, entity ->
                 entity != this.itemDisplayEntity &&
-                        entity.getPos().distanceTo(this.pos.toCenterPos()) < this.scale &&
+                        new Vec3d(entity.getX(), entity.getY(), entity.getZ()).distanceTo(this.pos.toCenterPos()) < this.scale &&
                         !(entity instanceof PlayerEntity player && player.isCreative()));
 
         for (Entity entity : affectedEntities) {
-            double distanceToBlackHole = entity.getPos().distanceTo(Vec3d.ofCenter(pos));
+            Vec3d entityPos = new Vec3d(entity.getX(), entity.getY(), entity.getZ());
+            double distanceToBlackHole = entityPos.distanceTo(Vec3d.ofCenter(pos));
 
             if (distanceToBlackHole <= this.scale / 2 && !(entity instanceof PlayerEntity player && player.isCreative())) {
                 if (entity instanceof ItemEntity) {
@@ -331,7 +335,7 @@ public class BlackHoleBlockEntity extends BlockEntity {
                 } else {
                     mass = BlackHoleConfig.getAnimalMass();
                 }
-                applyGravitationalPull(entity.getPos(), entity, blackHoleMass, mass, serverWorld);
+                applyGravitationalPull(entityPos, entity, blackHoleMass, mass, serverWorld);
             }
         }
 
@@ -547,4 +551,3 @@ public class BlackHoleBlockEntity extends BlockEntity {
         }
     }
 }
-

@@ -53,7 +53,7 @@ public class BlackHoleBlock extends BlockWithEntity implements PolymerTexturedBl
 
     @Override
     public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
-        if (!world.isClient && world.getBlockEntity(pos) instanceof BlackHoleBlockEntity blockEntity) {
+        if (!world.isClient() && world.getBlockEntity(pos) instanceof BlackHoleBlockEntity blockEntity) {
             blockEntity.startGrowth();
             // Schedule the next tick to ensure the growth continues
             if (world instanceof ServerWorld serverWorld) {
