@@ -77,11 +77,6 @@ public class BlackHoleBlockEntity extends BlockEntity {
             ((DisplayEntityAccessor) itemDisplay).invokeSetInterpolationDuration(20);
             ((DisplayEntityAccessor) itemDisplay).invokeSetStartInterpolation(0);
 
-            NbtCompound nbt = new NbtCompound();
-            itemDisplay.writeNbt(nbt);
-            nbt.putBoolean("PersistenceRequired", true);
-            itemDisplay.readNbt(nbt);
-
             boolean spawned = serverWorld.spawnEntity(itemDisplay);
             BlackHole.LOGGER.info("Black hole display entity spawned: " + spawned + " at " + positionOfHole + ", UUID: " + itemDisplay.getUuid());
             if (!spawned) {
@@ -93,49 +88,6 @@ public class BlackHoleBlockEntity extends BlockEntity {
             this.recreateAttempts = 0;
 
             serverWorld.scheduleBlockTick(this.pos, this.getCachedState().getBlock(), 1);
-        }
-    }
-
-    @Override
-    protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-        super.readNbt(nbt, registryLookup);
-        this.scale = nbt.contains("scale") ? nbt.getFloat("scale").orElse(1.0f) : 1.0f;
-        this.isGrowing = nbt.contains("isGrowing") ? nbt.getBoolean("isGrowing").orElse(true) : true;
-        this.shouldFollow = nbt.contains("shouldFollow") ? nbt.getBoolean("shouldFollow").orElse(true) : true;
-        this.followRange = nbt.contains("followRange") ? nbt.getDouble("followRange").orElse(BlackHoleConfig.getDefaultFollowRange()) : BlackHoleConfig.getDefaultFollowRange();
-
-        if (nbt.contains("entityUuid") && this.world instanceof ServerWorld serverWorld) {
-            String uuidString = nbt.getString("entityUuid").orElse("");
-            try {
-                if (!uuidString.isEmpty()) {
-                    UUID entityUuid = UUID.fromString(uuidString);
-                    Entity entity = serverWorld.getEntity(entityUuid);
-                    if (entity instanceof DisplayEntity.ItemDisplayEntity itemDisplay) {
-                        this.itemDisplayEntity = itemDisplay;
-                        BlackHole.LOGGER.info("Loaded display entity from NBT with UUID: " + entityUuid);
-                    } else {
-                        BlackHole.LOGGER.warn("Failed to load display entity from NBT. UUID: " + entityUuid);
-                        this.itemDisplayEntity = null;
-                    }
-                }
-            } catch (IllegalArgumentException e) {
-                BlackHole.LOGGER.warn("Invalid UUID in NBT: " + uuidString);
-                this.itemDisplayEntity = null;
-            }
-        }
-    }
-
-    @Override
-    protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-        super.writeNbt(nbt, registryLookup);
-        nbt.putFloat("scale", this.scale);
-        nbt.putBoolean("isGrowing", this.isGrowing);
-        nbt.putBoolean("shouldFollow", this.shouldFollow);
-        nbt.putDouble("followRange", this.followRange);
-
-        if (this.itemDisplayEntity != null && !this.itemDisplayEntity.isRemoved()) {
-            nbt.putString("entityUuid", this.itemDisplayEntity.getUuid().toString());
-            BlackHole.LOGGER.debug("Saved display entity UUID: " + this.itemDisplayEntity.getUuid());
         }
     }
 
