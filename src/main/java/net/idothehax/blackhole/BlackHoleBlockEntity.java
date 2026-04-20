@@ -10,11 +10,10 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.ItemDisplayContext;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.particle.ParticleTypes;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.world.ServerChunkManager;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.*;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
@@ -23,7 +22,6 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import java.util.List;
-import java.util.UUID;
 
 public class BlackHoleBlockEntity extends BlockEntity {
     public float scale = 1.0f;
@@ -123,7 +121,9 @@ public class BlackHoleBlockEntity extends BlockEntity {
                 for (int i = 0; i < 10; i++) {
                     double progress = i / 10.0;
                     Vec3d particlePos = fromPos.add(direction.multiply(progress));
-                    spawnParticlesIfEnabled(serverWorld, ParticleTypes.LARGE_SMOKE, particlePos.x, particlePos.y, particlePos.z, 1, 0.1, 0.1, 0.1, 0.01);
+                    if (BlackHoleConfig.areParticlesEnabled()) {
+                        serverWorld.spawnParticles(ParticleTypes.LARGE_SMOKE, particlePos.x, particlePos.y, particlePos.z, 1, 0.1, 0.1, 0.1, 0.01);
+                    }
                 }
 
                 BlackHole.LOGGER.info("Black hole moved from " + this.pos + " to " + newBlockPos);
@@ -391,8 +391,10 @@ public class BlackHoleBlockEntity extends BlockEntity {
             if (distanceToCenter <= currentBreakRadius) {
                 if (blockState.getBlock() instanceof FluidBlock || blockState.getFluidState().isOf(Fluids.WATER) || blockState.getFluidState().isOf(Fluids.LAVA)) {
                     serverWorld.setBlockState(mutablePos, Blocks.AIR.getDefaultState(), Block.SKIP_DROPS | Block.FORCE_STATE);
-                    spawnParticlesIfEnabled(serverWorld, ParticleTypes.SPLASH, mutablePos.getX() + 0.5, mutablePos.getY() + 0.5, mutablePos.getZ() + 0.5,
-                            5, 0.2, 0.2, 0.2, 0.01);
+                    if (BlackHoleConfig.areParticlesEnabled()) {
+                        serverWorld.spawnParticles(ParticleTypes.SPLASH, mutablePos.getX() + 0.5, mutablePos.getY() + 0.5, mutablePos.getZ() + 0.5,
+                                5, 0.2, 0.2, 0.2, 0.01);
+                    }
                     blocksProcessed++;
                 } else if (blockState.getHardness(serverWorld, mutablePos) >= 0) {
                     breakBlock(serverWorld, mutablePos, blockState);
@@ -403,8 +405,10 @@ public class BlackHoleBlockEntity extends BlockEntity {
                     double probability = 0.05 * (gravitationalRadius - distanceToCenter) / gravitationalRadius;
                     if (random.nextDouble() < probability) {
                         serverWorld.removeBlock(mutablePos, false);
-                        spawnParticlesIfEnabled(serverWorld, ParticleTypes.SPLASH, mutablePos.getX() + 0.5, mutablePos.getY() + 0.5, mutablePos.getZ() + 0.5,
-                                3, 0.2, 0.2, 0.2, 0.01);
+                        if (BlackHoleConfig.areParticlesEnabled()) {
+                            serverWorld.spawnParticles(ParticleTypes.SPLASH, mutablePos.getX() + 0.5, mutablePos.getY() + 0.5, mutablePos.getZ() + 0.5,
+                                    3, 0.2, 0.2, 0.2, 0.01);
+                        }
                         blocksProcessed++;
                     }
                 } else if (blockState.getHardness(serverWorld, mutablePos) >= 0) {
@@ -427,8 +431,10 @@ public class BlackHoleBlockEntity extends BlockEntity {
             createFallingBlock(serverWorld, pos, blockState);
         } else {
             serverWorld.setBlockState(pos, Blocks.AIR.getDefaultState(), Block.SKIP_DROPS | Block.FORCE_STATE);
-            spawnParticlesIfEnabled(serverWorld, ParticleTypes.SMOKE, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
-                    2, 0.2, 0.2, 0.2, 0.01);
+            if (BlackHoleConfig.areParticlesEnabled()) {
+                serverWorld.spawnParticles(ParticleTypes.SMOKE, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+                        2, 0.2, 0.2, 0.2, 0.01);
+            }
         }
     }
 
@@ -508,11 +514,11 @@ public class BlackHoleBlockEntity extends BlockEntity {
             double zPos = center.getZ() + spiralRadius * Math.sin(angle);
 
             if (random.nextFloat() < 0.7) {
-                spawnParticlesIfEnabled(serverWorld, ParticleTypes.FLAME, xPos, yPos, zPos, 1, 0, 0, 0, 0);
+                if (BlackHoleConfig.areParticlesEnabled()) serverWorld.spawnParticles(ParticleTypes.FLAME, xPos, yPos, zPos, 1, 0, 0, 0, 0);
             } else if (random.nextFloat() < 0.5) {
-                spawnParticlesIfEnabled(serverWorld, ParticleTypes.SMOKE, xPos, yPos, zPos, 1, 0, 0, 0, 0);
+                if (BlackHoleConfig.areParticlesEnabled()) serverWorld.spawnParticles(ParticleTypes.SMOKE, xPos, yPos, zPos, 1, 0, 0, 0, 0);
             } else {
-                spawnParticlesIfEnabled(serverWorld, ParticleTypes.SOUL_FIRE_FLAME, xPos, yPos, zPos, 1, 0, 0, 0, 0);
+                if (BlackHoleConfig.areParticlesEnabled()) serverWorld.spawnParticles(ParticleTypes.SOUL_FIRE_FLAME, xPos, yPos, zPos, 1, 0, 0, 0, 0);
             }
         }
     }
@@ -543,9 +549,170 @@ public class BlackHoleBlockEntity extends BlockEntity {
         }
     }
 
-    private void spawnParticlesIfEnabled(ServerWorld serverWorld, net.minecraft.particle.ParticleEffect particleType, double x, double y, double z, int count, double deltaX, double deltaY, double deltaZ, double speed) {
-        if (BlackHoleConfig.areParticlesEnabled()) {
-            serverWorld.spawnParticles(particleType, x, y, z, count, deltaX, deltaY, deltaZ, speed);
+    /**
+     * Public method to fully remove this black hole: discard display entity, remove block, and clean up chunk tickets.
+     * This helps ensure the display entity doesn't remain floating after the block is removed.
+     */
+    public void kill(ServerWorld serverWorld) {
+        try {
+            if (this.itemDisplayEntity != null && !this.itemDisplayEntity.isRemoved()) {
+                // Discard server-side entity; updateListeners later will inform clients about the block removal
+                int entityId = this.itemDisplayEntity.getId();
+                this.itemDisplayEntity.discard();
+                BlackHole.LOGGER.info("Discarded display entity for black hole at " + this.pos + " (id=" + entityId + ")");
+
+                // Send destroy packet to players (via reflection helper)
+                sendEntityDestroyPacketToPlayers(serverWorld, entityId);
+            }
+        } catch (Exception e) {
+            BlackHole.LOGGER.warn("Failed to discard display entity for black hole at " + this.pos + ": " + e.getMessage());
+        }
+
+        // Additionally, find any lingering display entities in the nearby area and remove them as a safety net
+        try {
+            Vec3d center = this.pos.toCenterPos();
+            Box searchBox = new Box(
+                    center.x - 2.0, center.y - 2.0, center.z - 2.0,
+                    center.x + 2.0, center.y + 2.0, center.z + 2.0
+            );
+            List<DisplayEntity.ItemDisplayEntity> displays = serverWorld.getEntitiesByClass(DisplayEntity.ItemDisplayEntity.class, searchBox, ent -> true);
+            for (DisplayEntity.ItemDisplayEntity disp : displays) {
+                if (disp != null && !disp.isRemoved()) {
+                    int id = disp.getId();
+                    try {
+                        disp.discard();
+                        // Try to call disp.remove(RemovalReason.DISCARDED) reflectively for extra safety
+                        try {
+                            Class<?> removalClass = Class.forName("net.minecraft.entity.Entity$RemovalReason");
+                            Object discardedEnum = null;
+                            for (Object enumConst : removalClass.getEnumConstants()) {
+                                if (enumConst.toString().equalsIgnoreCase("DISCARDED") || enumConst.toString().equalsIgnoreCase("DISCARD")) {
+                                    discardedEnum = enumConst;
+                                    break;
+                                }
+                            }
+                            if (discardedEnum != null) {
+                                try {
+                                    java.lang.reflect.Method removeMethod = disp.getClass().getMethod("remove", removalClass);
+                                    removeMethod.invoke(disp, discardedEnum);
+                                } catch (NoSuchMethodException | IllegalAccessException | java.lang.reflect.InvocationTargetException ex) {
+                                    // ignore
+                                }
+                            }
+                        } catch (ClassNotFoundException cnfe) {
+                            // Older/newer mappings may not have the nested enum name; ignore
+                        }
+
+                        BlackHole.LOGGER.debug("Discarded lingering display entity id=" + id + " near " + this.pos);
+                    } catch (Exception ex) {
+                        BlackHole.LOGGER.debug("Failed to discard lingering display entity id=" + id + ": " + ex.getMessage());
+                    }
+                    // try to notify clients
+                    sendEntityDestroyPacketToPlayers(serverWorld, id);
+                }
+            }
+        } catch (Exception e) {
+            BlackHole.LOGGER.debug("Error while searching for lingering display entities: " + e.getMessage());
+        }
+
+        try {
+            // Capture the old state so updateListeners can send the correct change packet
+            BlockState oldState = serverWorld.getBlockState(this.pos);
+
+            // Remove block entity on the server to avoid stale client data
+            serverWorld.removeBlockEntity(this.pos);
+
+            // Remove the block and notify clients immediately (use NOTIFY_ALL so clients update right away)
+            int notifyFlags = Block.NOTIFY_ALL | Block.SKIP_DROPS;
+            serverWorld.setBlockState(this.pos, Blocks.AIR.getDefaultState(), notifyFlags);
+
+            // Explicitly notify listeners/clients of the state change
+            serverWorld.updateListeners(this.pos, oldState, Blocks.AIR.getDefaultState(), Block.NOTIFY_ALL);
+
+            BlackHole.LOGGER.info("Removed black hole block at " + this.pos + " and notified clients");
+        } catch (Exception e) {
+            BlackHole.LOGGER.error("Failed to remove black hole block at " + this.pos + ": " + e.getMessage());
+        }
+
+        try {
+            // Clean up any chunk tickets and unforce chunks around the black hole
+            var chunkManager = serverWorld.getChunkManager();
+            chunkManager.removeTicket(BlackHole.BLACK_HOLE_TICKET_TYPE, this.chunkPos, BlackHoleConfig.getChunkLoadRadius());
+            for (int dx = -BlackHoleConfig.getChunkLoadRadius(); dx <= BlackHoleConfig.getChunkLoadRadius(); dx++) {
+                for (int dz = -BlackHoleConfig.getChunkLoadRadius(); dz <= BlackHoleConfig.getChunkLoadRadius(); dz++) {
+                    ChunkPos p = new ChunkPos(this.chunkPos.x + dx, this.chunkPos.z + dz);
+                    try {
+                        chunkManager.setChunkForced(p, false);
+                    } catch (Exception ex) {
+                        // Non-fatal cleanup error
+                        BlackHole.LOGGER.debug("Failed to unforce chunk " + p + ": " + ex.getMessage());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            BlackHole.LOGGER.warn("Failed to clean up chunk tickets for black hole at " + this.pos + ": " + e.getMessage());
+        }
+    }
+
+    // Reflection-based helper to create and send an entity-destroy packet to all players in the world
+    private void sendEntityDestroyPacketToPlayers(ServerWorld serverWorld, int entityId) {
+        try {
+            Class<?> packetClass = Class.forName("net.minecraft.network.packet.s2c.play.EntityDestroyS2CPacket");
+            Object packet = null;
+            try {
+                java.lang.reflect.Constructor<?> ctor = packetClass.getConstructor(int[].class);
+                packet = ctor.newInstance((Object) new int[]{entityId});
+            } catch (NoSuchMethodException ex1) {
+                try {
+                    java.lang.reflect.Constructor<?> ctor = packetClass.getConstructor(int.class);
+                    packet = ctor.newInstance(entityId);
+                } catch (NoSuchMethodException ex2) {
+                    BlackHole.LOGGER.debug("No compatible constructor found for EntityDestroy packet: " + ex2.getMessage());
+                }
+            }
+
+            if (packet == null) {
+                return;
+            }
+
+            for (ServerPlayerEntity player : serverWorld.getPlayers()) {
+                try {
+                    Object nh = null;
+                    try {
+                        java.lang.reflect.Field f = player.getClass().getField("networkHandler");
+                        nh = f.get(player);
+                    } catch (NoSuchFieldException nsf) {
+                        try {
+                            java.lang.reflect.Method m = player.getClass().getMethod("getNetworkHandler");
+                            nh = m.invoke(player);
+                        } catch (NoSuchMethodException | IllegalAccessException | java.lang.reflect.InvocationTargetException ex) {
+                            BlackHole.LOGGER.debug("Unable to access network handler for player " + player.getDisplayName().getString() + ": " + ex.getMessage());
+                            continue;
+                        }
+                    }
+
+                    if (nh != null) {
+                        java.lang.reflect.Method send = null;
+                        for (java.lang.reflect.Method mm : nh.getClass().getMethods()) {
+                            if (mm.getName().equals("sendPacket") && mm.getParameterCount() == 1) {
+                                send = mm;
+                                break;
+                            }
+                        }
+                        if (send != null) {
+                            send.invoke(nh, packet);
+                        } else {
+                            BlackHole.LOGGER.debug("No sendPacket method found on network handler for player " + player.getDisplayName().getString());
+                        }
+                    }
+                } catch (Throwable ex) {
+                    BlackHole.LOGGER.debug("Failed to send entity destroy packet to " + player.getDisplayName().getString() + ": " + ex.getMessage());
+                }
+            }
+        } catch (ClassNotFoundException cnfe) {
+            BlackHole.LOGGER.debug("EntityDestroy packet class not found: " + cnfe.getMessage());
+        } catch (Throwable t) {
+            BlackHole.LOGGER.debug("Error while creating/sending entity destroy packet: " + t.getMessage());
         }
     }
 }

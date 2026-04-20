@@ -12,6 +12,8 @@ A Minecraft mod that adds destructive, dynamic black holes to your world.
 
 The Black Hole mod introduces a new block that creates a simulated black hole in your Minecraft world. These black holes have realistic gravitational effects, pulling in nearby entities and blocks. They can grow over time, follow players, and cause destruction in their path.
 
+### PSA: DONT USE THIS IN YOUR WORLD WITHOUT MAKING A BACKUP!!
+
 ## Features
 
 - **Realistic Physics**: Black holes exert gravitational force on nearby entities and blocks based on configurable mass values
@@ -54,6 +56,7 @@ All commands require operator permission level 2 or higher and begin with `/blac
 | `togglefollow` | Toggle whether the nearest black hole follows players |
 | `togglegrowth` | Toggle whether the nearest black hole grows over time |
 | `setfollowrange <range>` | Set the follow range for the nearest black hole |
+| `kill` | Permanently remove the nearest black hole and its visuals (requires server-side 1.21.11+ features) |
 
 ## Configuration
 

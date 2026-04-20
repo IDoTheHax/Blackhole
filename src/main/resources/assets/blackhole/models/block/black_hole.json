@@ -1,6 +1,6 @@
 {
 	"parent": "minecraft:block/cube_all",
 	"textures": {
-		"all": "blackhole:item/black_hole"
+		"all": "blackhole:block/black_hole"
 	}
 }

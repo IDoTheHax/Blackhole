@@ -286,31 +286,52 @@ public class BlackHoleCommands {
                                 return 0;
                             }
                         }))
-                .then(CommandManager.literal("setfollowrange")
-                        .then(CommandManager.argument("range", DoubleArgumentType.doubleArg(0))
-                                .executes(context -> {
-                                    double range = DoubleArgumentType.getDouble(context, "range");
-                                    ServerCommandSource source = context.getSource();
-                                    try {
-                                        Vec3d pos = source.getPosition();
-                                        ServerWorld world = source.getWorld();
-                                        BlackHoleBlockEntity blackHole = findNearestBlackHole(world, pos);
+                .then(CommandManager.literal("kill")
+                        .executes(context -> {
+                            ServerCommandSource source = context.getSource();
+                            try {
+                                Vec3d pos = source.getPosition();
+                                ServerWorld world = source.getWorld();
+                                BlackHoleBlockEntity blackHole = findNearestBlackHole(world, pos);
 
-                                        if (blackHole == null) {
-                                            source.sendFeedback(() -> Text.literal("No black hole found nearby"), false);
-                                            return Command.SINGLE_SUCCESS;
-                                        }
+                                if (blackHole == null) {
+                                    source.sendFeedback(() -> Text.literal("No black hole found nearby"), false);
+                                    return Command.SINGLE_SUCCESS;
+                                }
 
-                                        blackHole.setFollowRange(range);
-                                        source.sendFeedback(() -> Text.literal("Black hole at " + blackHole.getPosition() + " follow range set to " + range), true);
-                                        return Command.SINGLE_SUCCESS;
-                                    } catch (Exception e) {
-                                        source.sendFeedback(() -> Text.literal("Error: " + e.getMessage()), false);
-                                        return 0;
-                                    }
-                                })))
-                );
-    }
+                                blackHole.kill(world);
+                                source.sendFeedback(() -> Text.literal("Killed black hole at " + blackHole.getPosition()), true);
+                                return Command.SINGLE_SUCCESS;
+                            } catch (Exception e) {
+                                source.sendFeedback(() -> Text.literal("Error while killing black hole: " + e.getMessage()), false);
+                                return 0;
+                            }
+                        }) )
+                 .then(CommandManager.literal("setfollowrange")
+                         .then(CommandManager.argument("range", DoubleArgumentType.doubleArg(0))
+                                 .executes(context -> {
+                                     double range = DoubleArgumentType.getDouble(context, "range");
+                                     ServerCommandSource source = context.getSource();
+                                     try {
+                                         Vec3d pos = source.getPosition();
+                                         ServerWorld world = source.getWorld();
+                                         BlackHoleBlockEntity blackHole = findNearestBlackHole(world, pos);
+
+                                         if (blackHole == null) {
+                                             source.sendFeedback(() -> Text.literal("No black hole found nearby"), false);
+                                             return Command.SINGLE_SUCCESS;
+                                         }
+
+                                         blackHole.setFollowRange(range);
+                                         source.sendFeedback(() -> Text.literal("Black hole at " + blackHole.getPosition() + " follow range set to " + range), true);
+                                         return Command.SINGLE_SUCCESS;
+                                     } catch (Exception e) {
+                                         source.sendFeedback(() -> Text.literal("Error: " + e.getMessage()), false);
+                                         return 0;
+                                     }
+                                 })))
+                 );
+     }
 
     private static BlackHoleBlockEntity findNearestBlackHole(ServerWorld world, Vec3d position) {
         List<BlackHoleBlockEntity> blackHoles = new ArrayList<>();
