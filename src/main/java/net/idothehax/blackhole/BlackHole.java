@@ -39,7 +39,6 @@ public class BlackHole implements ModInitializer {
             Identifier.of(MOD_ID, "black_hole"),
             new ChunkTicketType(300L, ChunkTicketType.FOR_LOADING | ChunkTicketType.FOR_SIMULATION)
     );
-            );
 
     public static BlackHoleBlock BLACK_HOLE_BLOCK;
     public static BlockItem BLACK_HOLE_ITEM;
@@ -71,9 +70,9 @@ public class BlackHole implements ModInitializer {
 
         // Register item with registry key in settings
         BLACK_HOLE_ITEM = new BlackHoleItem(
+                BLACK_HOLE_BLOCK,
                 new Item.Settings()
-                        .registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(MOD_ID, "black_hole"))),
-                BLACK_HOLE_BLOCK
+                        .registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(MOD_ID, "black_hole")))
         );
         Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "black_hole"), BLACK_HOLE_ITEM);
 

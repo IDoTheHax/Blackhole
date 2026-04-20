@@ -23,8 +23,17 @@ public class BlackHoleCommands {
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(CommandManager.literal("blackhole")
-                .requires(source -> source.hasPermissionLevel(2)) // Only ops can use
-                // Max Scale commands
+                        .requires(source -> {
+                            // allow console (no player) always, or check op status if it is a player
+                            var server = source.getServer();
+                            var player = source.getPlayer();
+                            if (player == null) {
+                                // console / command blocks etc.
+                                return true;
+                            }
+                            return server.getPlayerManager().isOperator(player.getPlayerConfigEntry());
+                        })
+                        // Max Scale commands
                 .then(CommandManager.literal("getmaxscale")
                         .executes(context -> {
                             ServerCommandSource source = context.getSource();

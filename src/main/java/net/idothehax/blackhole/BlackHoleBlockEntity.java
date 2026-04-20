@@ -448,7 +448,6 @@ public class BlackHoleBlockEntity extends BlockEntity {
             if (fallingBlock != null) {
                 Vec3d direction = this.pos.toCenterPos().subtract(pos.toCenterPos()).normalize();
                 fallingBlock.setVelocity(direction.multiply(0.1));
-                fallingBlock.velocityModified = true;
                 serverWorld.removeBlock(pos, false);
             }
         }
@@ -528,7 +527,6 @@ public class BlackHoleBlockEntity extends BlockEntity {
             forceMagnitude = Math.min(forceMagnitude, 5.0);
             Vec3d velocityToAdd = directionFromEntityToHole.multiply(forceMagnitude / 1000);
             entity.addVelocity(velocityToAdd.x, velocityToAdd.y, velocityToAdd.z);
-            entity.velocityModified = true;
         }
     }
 
