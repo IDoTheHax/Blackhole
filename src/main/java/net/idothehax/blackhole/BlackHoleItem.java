@@ -17,14 +17,14 @@ import java.util.Collections;
 
 public class BlackHoleItem extends BlockItem implements PolymerItem {
 
-    public BlackHoleItem(Item.Settings settings, Block block) {
-        super(block, settings);
-    }
-
     @Override
     public ItemStack getPolymerItemStack(ItemStack itemStack, TooltipType tooltipType, PacketContext context) {
         ItemStack stack = PolymerItem.super.getPolymerItemStack(itemStack, tooltipType, context);
 
+        // Set custom model data using the correct component type
+        stack.set(DataComponentTypes.CUSTOM_MODEL_DATA, new CustomModelDataComponent(1)); // Use your desired model data value
+        // Set custom model data using the correct component type
+        stack.set(DataComponentTypes.CUSTOM_MODEL_DATA, new CustomModelDataComponent(1)); // Use your desired model data value
         // Set custom model data using the correct constructor for Minecraft 1.21+
         stack.set(
             DataComponentTypes.CUSTOM_MODEL_DATA,
