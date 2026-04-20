@@ -39,6 +39,7 @@ public class BlackHole implements ModInitializer {
             Identifier.of(MOD_ID, "black_hole"),
             new ChunkTicketType(300L, ChunkTicketType.FOR_LOADING | ChunkTicketType.FOR_SIMULATION)
     );
+            );
 
     public static BlackHoleBlock BLACK_HOLE_BLOCK;
     public static BlockItem BLACK_HOLE_ITEM;
