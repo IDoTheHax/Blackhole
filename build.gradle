@@ -98,6 +98,11 @@ modrinth {
     gameVersions = ["1.21.11"]
     changelog = """
         Update black hole mod for compatibility with Minecraft 1.21.11
+        
+        - Added commands to "kill" the blackhole, removing the display entities that are left floating
+        - Fixxed texture pack issues
+        - Minor code cleanups and changes
+        - Updated README to include documentation for "/blackhole kill" command
     """
     loaders = ["fabric"]
     dependencies {
